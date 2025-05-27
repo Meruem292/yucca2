@@ -17,7 +17,7 @@ export function BottomNav() {
   }, []);
 
   return (
-    <footer className="sticky bottom-0 left-0 right-0 z-20 border-t bg-card shadow-lg md:hidden">
+    <footer className="sticky bottom-0 left-0 right-0 z-20 border-t bg-card shadow-lg"> {/* Removed md:hidden */}
       {/* Only render nav content once mounted on the client to prevent hydration mismatch */}
       {isMounted ? (
         <nav className="flex h-16 items-center justify-around px-2"> {/* Removed mx-auto and max-w-md for simplicity, can be added back if needed for specific centering on larger small screens */}
@@ -48,3 +48,4 @@ export function BottomNav() {
     </footer>
   );
 }
+
