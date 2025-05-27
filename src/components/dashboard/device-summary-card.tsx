@@ -37,8 +37,8 @@ export function DeviceSummaryCard({ device }: DeviceSummaryCardProps) {
 
   const chartConfig = {
     soilMoisture: {
-      label: "Soil Moisture", // Not displayed in this mini chart, but good for config
-      color: "hsl(var(--chart-3))", // Muted Blue from globals.css
+      label: "Soil Moisture", 
+      color: "hsl(var(--chart-3))", 
     },
   } satisfies ChartConfig;
 
@@ -108,7 +108,12 @@ export function DeviceSummaryCard({ device }: DeviceSummaryCardProps) {
                     >
                       <XAxis dataKey="date" hide />
                       <YAxis hide domain={[0, 100]} />
-                      <Bar dataKey="value" fill="var(--color-soilMoisture)" radius={2} />
+                      <Bar 
+                        dataKey="value" 
+                        fill="var(--color-soilMoisture)" 
+                        radius={2} 
+                        className="animate-pulse-bar" /* Apply pulsing animation class */
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </ChartContainer>
