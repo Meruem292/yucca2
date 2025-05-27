@@ -4,48 +4,56 @@ import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
+import { getDatabase, type Database as RealtimeDatabaseType } from "firebase/database"; // Added for RTDB
 
 // IMPORTANT: REPLACE THE PLACEHOLDER VALUES BELOW WITH YOUR ACTUAL FIREBASE PROJECT CREDENTIALS.
 // You can find these in your Firebase project settings:
 // Project Overview > (Gear Icon) > Project settings > General tab > Your apps > Web app > Config
+
+// Using hardcoded values as per user confirmation.
+// Ensure these are your ACTUAL credentials.
 const firebaseConfig = {
-  apiKey: "AIzaSyBPEswJbXXgr_B3hUvfHpFkR9QMKuUQJn8",
-  authDomain: "yucca-a3092.firebaseapp.com",
-  databaseURL: "https://yucca-a3092-default-rtdb.firebaseio.com",
-  projectId: "yucca-a3092",
-  storageBucket: "yucca-a3092.firebasestorage.app",
-  messagingSenderId: "1010415262149",
-  appId: "1:1010415262149:web:e07c2a5a1057d360f353ac",
-  measurementId: "G-8VY4PL4E4W"
+  apiKey: "AIzaSyBPEswJbXXgr_B3hUvfHpFkR9QMKuUQJn8", // Replace with your actual API key
+  authDomain: "yucca-a3092.firebaseapp.com",       // Replace with your actual auth domain
+  databaseURL: "https://yucca-a3092-default-rtdb.firebaseio.com", // Ensure this is correct for RTDB
+  projectId: "yucca-a3092",                         // Replace with your actual project ID
+  storageBucket: "yucca-a3092.firebasestorage.app", // Replace with your actual storage bucket
+  messagingSenderId: "1010415262149",               // Replace with your actual sender ID
+  appId: "1:1010415262149:web:e07c2a5a1057d360f353ac",             // Replace with your actual app ID
+  measurementId: "G-8VY4PL4E4W"                   // Optional: Replace with your actual measurement ID
 };
+
 
 // --- Configuration Verification & Logging ---
 console.log("--- Firebase Hardcoded Configuration ---");
 console.log("Attempting to initialize Firebase with the following hardcoded config from src/lib/firebase/config.ts:");
-let isPlaceholderDetected = false;
 
-if (firebaseConfig.apiKey === "YOUR_ACTUAL_API_KEY_HERE") {
-  console.error("CRITICAL: 'apiKey' in firebaseConfig is still the placeholder value. Please replace it with your actual Firebase API Key.");
+let isPlaceholderDetected = false;
+// Check if any placeholder values are still present
+if (firebaseConfig.apiKey.startsWith("YOUR_") || firebaseConfig.apiKey.startsWith("AIzaSyYOUR")) {
+  console.error("CRITICAL: 'apiKey' in firebaseConfig appears to be a placeholder. Please replace it with your actual Firebase API Key.");
   isPlaceholderDetected = true;
 }
-if (firebaseConfig.projectId === "YOUR_PROJECT_ID" || (firebaseConfig.authDomain && firebaseConfig.authDomain.includes("YOUR_PROJECT_ID.firebaseapp.com"))) {
-  console.error("CRITICAL: 'projectId' or 'authDomain' in firebaseConfig appears to use the placeholder 'YOUR_PROJECT_ID'. Please replace it with your actual Firebase Project ID.");
+if (firebaseConfig.projectId.startsWith("YOUR_")) {
+  console.error("CRITICAL: 'projectId' in firebaseConfig appears to be a placeholder. Please replace it with your actual Firebase Project ID.");
   isPlaceholderDetected = true;
 }
-// Add similar checks for other essential fields if desired
+// Add similar checks for other essential fields if desired for thoroughness
 
 console.log("Project ID:", `"${firebaseConfig.projectId}"`);
-console.log("API Key:", `"${firebaseConfig.apiKey ? firebaseConfig.apiKey.substring(0, 6) + '...' : 'MISSING'}"`);
+console.log("API Key:", `"${firebaseConfig.apiKey ? firebaseConfig.apiKey.substring(0, 6) + '...' : 'MISSING'}" (check Firebase Console for full key)`);
 console.log("Auth Domain:", `"${firebaseConfig.authDomain}"`);
+console.log("Database URL (RTDB):", `"${firebaseConfig.databaseURL}"`);
 console.log("Storage Bucket:", `"${firebaseConfig.storageBucket}"`);
 console.log("Messaging Sender ID:", `"${firebaseConfig.messagingSenderId}"`);
 console.log("App ID:", `"${firebaseConfig.appId}"`);
+console.log("Measurement ID (Optional):", `"${firebaseConfig.measurementId || 'Not provided'}"`);
 console.log("--------------------------------------");
 
 if (isPlaceholderDetected) {
   console.error(
     "Firebase will likely fail to initialize due to placeholder credentials. " +
-    "Please edit src/lib/firebase/config.ts and replace all 'YOUR_...' placeholders with your project's actual Firebase credentials."
+    "Please edit src/lib/firebase/config.ts and replace ALL placeholder values (like 'YOUR_PROJECT_ID', 'AIzaSyYOUR_...') with your project's actual Firebase credentials."
   );
 }
 // --- End Configuration Verification & Logging ---
@@ -53,7 +61,8 @@ if (isPlaceholderDetected) {
 // Initialize Firebase
 let app: FirebaseApp;
 let auth: Auth;
-let db: Firestore;
+let firestoreDB: Firestore; // Renamed for clarity
+let rtdb: RealtimeDatabaseType; // For Realtime Database
 let storage: FirebaseStorage;
 
 if (!getApps().length) {
@@ -63,7 +72,6 @@ if (!getApps().length) {
     console.log("Firebase app initialized successfully.");
   } catch (error: any) {
     console.error("Firebase initialization error (initializeApp call failed):", error.message);
-    console.error("The firebaseConfig object that was used during this attempt:", firebaseConfig);
     // @ts-ignore - app will be undefined here
     app = undefined;
   }
@@ -74,28 +82,55 @@ if (!getApps().length) {
 
 if (app) {
   try {
+    console.log("Attempting: getAuth(app)");
     auth = getAuth(app);
-    db = getFirestore(app);
-    storage = getStorage(app);
-    console.log("Firebase Auth, Firestore, and Storage services initialized (or retrieved).");
-  } catch (serviceError: any) {
-    console.error("Error initializing Firebase services (Auth, Firestore, or Storage) after app initialization:", serviceError.message);
+    console.log("Firebase Auth service initialized successfully.");
+  } catch (e) {
+    console.error("Error initializing Firebase Auth:", e);
     // @ts-ignore
     auth = undefined;
+  }
+
+  try {
+    console.log("Attempting: getFirestore(app)");
+    firestoreDB = getFirestore(app);
+    console.log("Firebase Firestore service initialized successfully.");
+  } catch (e) {
+    console.error("Error initializing Firebase Firestore:", e);
     // @ts-ignore
-    db = undefined;
+    firestoreDB = undefined;
+  }
+  
+  try {
+    console.log("Attempting: getDatabase(app) for Realtime Database");
+    rtdb = getDatabase(app); // Initialize Realtime Database
+    console.log("Firebase Realtime Database service initialized successfully.");
+  } catch(e) {
+    console.error("Error initializing Firebase Realtime Database:", e);
+    // @ts-ignore
+    rtdb = undefined;
+  }
+
+  try {
+    console.log("Attempting: getStorage(app)");
+    storage = getStorage(app);
+    console.log("Firebase Storage service initialized successfully.");
+  } catch (e) {
+    console.error("Error initializing Firebase Storage:", e);
     // @ts-ignore
     storage = undefined;
   }
+
 } else {
-  console.error("Firebase app object is NOT available. Firebase services (Auth, Firestore, Storage) will NOT be initialized.");
-   // @ts-ignore
+  console.error("Firebase app object is NOT available. Firebase services will NOT be initialized.");
+  // @ts-ignore
   auth = undefined;
-   // @ts-ignore
-  db = undefined;
-   // @ts-ignore
+  // @ts-ignore
+  firestoreDB = undefined;
+  // @ts-ignore
+  rtdb = undefined;
+  // @ts-ignore
   storage = undefined;
 }
 
-export { app, auth, db, storage };
-
+export { app, auth, firestoreDB, rtdb, storage };
