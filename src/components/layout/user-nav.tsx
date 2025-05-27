@@ -13,18 +13,19 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { userNavItems } from '@/lib/constants';
+import { userNavItems, getLucideIcon } from '@/lib/constants';
 import { LogOut } from 'lucide-react';
 import { useRouter } from "next/navigation";
 import { signOutUser } from '@/lib/firebase/auth'; 
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth'; // Import the custom auth hook
-import React, { useState } from 'react'; // Keep React import for useState
+import { useAuth } from '@/hooks/useAuth'; 
+import React, { useState } from 'react';
+import type { LucideIcon } from 'lucide-react';
 
 export function UserNav() {
   const router = useRouter();
   const { toast } = useToast();
-  const { user: currentUser, loading: authLoading } = useAuth(); // Use our hook
+  const { user: currentUser, loading: authLoading } = useAuth(); 
   const [isLogoutLoading, setIsLogoutLoading] = useState(false);
 
   const handleLogout = async () => {
@@ -58,7 +59,7 @@ export function UserNav() {
   }
 
   if (authLoading) {
-    return <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">...</Button>; // Or a skeleton
+    return <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">...</Button>; 
   }
 
   if (!currentUser) {
@@ -97,14 +98,17 @@ export function UserNav() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          {userNavItems.map((item) => (
-            <DropdownMenuItem key={item.title} asChild disabled={item.disabled} className="cursor-pointer">
-              <Link href={item.href}>
-                <item.icon className="mr-2 h-4 w-4" />
-                <span>{item.title}</span>
-              </Link>
-            </DropdownMenuItem>
-          ))}
+          {userNavItems.map((item) => {
+            const IconComponent = typeof item.icon === 'string' ? getLucideIcon(item.icon) : item.icon as LucideIcon;
+            return (
+              <DropdownMenuItem key={item.title} asChild disabled={item.disabled} className="cursor-pointer">
+                <Link href={item.href}>
+                  {IconComponent && <IconComponent className="mr-2 h-4 w-4" />}
+                  <span>{item.title}</span>
+                </Link>
+              </DropdownMenuItem>
+            );
+          })}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout} disabled={isLogoutLoading} className="cursor-pointer">
