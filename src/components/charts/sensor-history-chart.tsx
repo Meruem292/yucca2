@@ -9,8 +9,6 @@ import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent,
 } from "@/components/ui/chart";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts";
 
@@ -28,8 +26,8 @@ export function SensorHistoryChart({ sensorType, historyData, unit }: SensorHist
   const chartConfig = {
     value: {
       label: sensorName,
-      color: "hsl(var(--primary))", 
-      icon: SensorIcon || undefined, // Pass undefined if icon is null
+      color: "hsl(var(--chart-3))", // Changed to chart-3 for blue
+      icon: SensorIcon || undefined,
     },
   } satisfies ChartConfig;
 
@@ -38,7 +36,7 @@ export function SensorHistoryChart({ sensorType, historyData, unit }: SensorHist
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
-            {SensorIcon && <SensorIcon className="mr-2 h-6 w-6 text-primary" />}
+            {SensorIcon && <SensorIcon className="mr-2 h-6 w-6 text-[hsl(var(--chart-3))]" />} {/* Changed icon color */}
             {sensorName} History
           </CardTitle>
           <CardDescription>No historical data available for this sensor.</CardDescription>
@@ -61,7 +59,7 @@ export function SensorHistoryChart({ sensorType, historyData, unit }: SensorHist
     <Card className="shadow-xl">
       <CardHeader>
         <CardTitle className="flex items-center text-2xl">
-           {SensorIcon && <SensorIcon className="mr-3 h-7 w-7 text-primary" />}
+           {SensorIcon && <SensorIcon className="mr-3 h-7 w-7 text-[hsl(var(--chart-3))]" />} {/* Changed icon color */}
           {sensorName} History
         </CardTitle>
         <CardDescription>Last 30 days of {sensorName.toLowerCase()} readings ({unit}).</CardDescription>
@@ -96,19 +94,19 @@ export function SensorHistoryChart({ sensorType, historyData, unit }: SensorHist
               />
               <defs>
                 <linearGradient id={`fill-${sensorType}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0.1}/>
+                  <stop offset="5%" stopColor="hsl(var(--chart-3))" stopOpacity={0.8}/> {/* Changed to chart-3 */}
+                  <stop offset="95%" stopColor="hsl(var(--chart-3))" stopOpacity={0.1}/> {/* Changed to chart-3 */}
                 </linearGradient>
               </defs>
               <Area
                 dataKey="value"
                 type="natural"
                 fill={`url(#fill-${sensorType})`}
-                stroke="hsl(var(--primary))"
+                stroke="hsl(var(--chart-3))" // Changed to chart-3
                 stackId="a"
                 dot={false}
               />
-               <ChartLegend content={<ChartLegendContent />} />
+               {/* Removed ChartLegend */}
             </AreaChart>
           </ResponsiveContainer>
         </ChartContainer>
@@ -116,3 +114,4 @@ export function SensorHistoryChart({ sensorType, historyData, unit }: SensorHist
     </Card>
   );
 }
+
