@@ -1,4 +1,4 @@
-import { getMockDeviceById, getMockSensorHistory } from '@/lib/mock-data';
+import { getMockDeviceById, getMockSensorHistory, mockDevices } from '@/lib/mock-data';
 import type { SensorType } from '@/lib/constants';
 import { SENSOR_DISPLAY_NAMES } from '@/lib/constants';
 import { notFound } from 'next/navigation';
