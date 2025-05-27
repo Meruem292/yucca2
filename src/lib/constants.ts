@@ -9,20 +9,21 @@ import {
   Clock,
   Droplets,
   Thermometer,
-  CloudRain,
+  CloudRain, // Changed from Wind for Humidity
   Waves,
   FlaskConical,
   Leaf,
   PackageSearch,
   AlertTriangle,
   CheckCircle2,
-  CircleCheck, 
+  CircleCheck,
   Settings2,
   SlidersHorizontal,
-  Plus, 
-  Save, 
+  Plus,
+  Save,
   ListPlus,
-  LogOut, // Added for UserNav fallback
+  LogOut,
+  Wind, // Added Wind as an option, though CloudRain is used for humidity
 } from 'lucide-react';
 
 export interface NavItem {
@@ -57,18 +58,18 @@ export const bottomNavItems: NavItem[] = [
     icon: 'LayoutDashboard',
   },
   {
-    title: 'Plants', 
-    href: '/devices', 
+    title: 'Plants',
+    href: '/devices',
     icon: 'Leaf',
   },
   {
-    title: 'Control', 
+    title: 'Control',
     href: '/devices/register', // Example different link for control - adjust as needed
     icon: 'SlidersHorizontal',
   },
   {
     title: 'Settings',
-    href: '/settings', 
+    href: '/settings',
     icon: 'Settings',
   },
 ];
@@ -83,7 +84,7 @@ export const userNavItems: NavItem[] = [
   },
   {
     title: 'Settings',
-    href: '/settings', 
+    href: '/settings',
     icon: 'Settings',
   },
 ];
@@ -92,10 +93,11 @@ export const userNavItems: NavItem[] = [
 export const SENSOR_ICON_NAMES = {
   'soil_moisture': 'Droplets',
   'soil_temperature': 'Thermometer',
-  'air_temperature': 'Thermometer',
-  'air_humidity': 'CloudRain',
+  'air_temperature': 'Thermometer', // Keeping Thermometer for Air Temp as well
+  'air_humidity': 'CloudRain',    // Using CloudRain for Air Humidity
   'water_level': 'Waves',
   'fertilizer_level': 'FlaskConical',
+  'temperature': 'Thermometer', // Generic type for combined temperature view
 } as const;
 
 export type SensorIconNameType = keyof typeof SENSOR_ICON_NAMES;
@@ -106,6 +108,7 @@ export const getLucideIcon = (name: string): LucideIcon | null => {
     case 'Droplets': return Droplets;
     case 'Thermometer': return Thermometer;
     case 'CloudRain': return CloudRain;
+    case 'Wind': return Wind;
     case 'Waves': return Waves;
     case 'FlaskConical': return FlaskConical;
     case 'Leaf': return Leaf;
@@ -136,7 +139,15 @@ export const SENSOR_DISPLAY_NAMES: Record<SensorType, string> = {
   'soil_moisture': 'Soil Moisture',
   'soil_temperature': 'Soil Temp.',
   'air_temperature': 'Air Temp.',
-  'air_humidity': 'Humidity',
+  'air_humidity': 'Air Humidity', // Changed for clarity
   'water_level': 'Water Level',
   'fertilizer_level': 'Fertilizer Level',
+  'temperature': 'Temperature', // Display name for the combined temperature view
 };
+
+// For tabs on history page
+export const HISTORY_SENSOR_TYPES: {id: SensorType; label: string; icon: SensorIconNameType}[] = [
+    { id: 'soil_moisture', label: 'Soil Moisture', icon: 'Droplets' },
+    { id: 'temperature', label: 'Temperature', icon: 'Thermometer' }, // Represents combined view
+    { id: 'air_humidity', label: 'Humidity', icon: 'CloudRain' },
+];
