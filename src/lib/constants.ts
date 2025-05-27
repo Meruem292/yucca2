@@ -16,14 +16,15 @@ import {
   PackageSearch,
   AlertTriangle,
   CheckCircle2,
-  CircleCheck, // Added missing import for dashboard/stat-card via mock-data
-  Settings2, // Added missing import for dashboard/stat-card via mock-data
+  CircleCheck, 
+  Settings2,
+  SlidersHorizontal, // Added for new bottom nav
 } from 'lucide-react';
 
 export interface NavItem {
   title: string;
   href: string;
-  icon: LucideIcon;
+  icon: LucideIcon | string; // Allow string for icon name
   label?: string;
   disabled?: boolean;
   external?: boolean;
@@ -31,30 +32,55 @@ export interface NavItem {
 
 export const APP_NAME = "Yucca";
 
+// This can be used for sidebar/desktop if needed later, or removed
 export const mainNavItems: NavItem[] = [
   {
     title: 'Dashboard',
     href: '/dashboard',
-    icon: LayoutDashboard,
+    icon: 'LayoutDashboard',
   },
   {
     title: 'Devices',
     href: '/devices',
-    icon: Smartphone,
+    icon: 'Smartphone',
   },
 ];
+
+export const bottomNavItems: NavItem[] = [
+  {
+    title: 'Dashboard',
+    href: '/dashboard',
+    icon: 'LayoutDashboard',
+  },
+  {
+    title: 'Plants', // Assuming 'Plants' page, using /devices as placeholder
+    href: '/devices', // Placeholder, adjust if a dedicated /plants page exists
+    icon: 'Leaf',
+  },
+  {
+    title: 'Control', // Assuming 'Control' page, using /settings as placeholder
+    href: '/settings', // Placeholder, adjust if a dedicated /control page exists
+    icon: 'SlidersHorizontal',
+  },
+  {
+    title: 'Settings',
+    href: '/settings', // Placeholder
+    icon: 'Settings',
+  },
+];
+
 
 export const userNavItems: NavItem[] = [
  {
     title: 'Profile',
     href: '#', // Placeholder
-    icon: Settings, // Using Settings as a generic profile icon
+    icon: 'Settings', 
     disabled: true,
   },
   {
     title: 'Settings',
     href: '#', // Placeholder
-    icon: Settings,
+    icon: 'Settings',
     disabled: true,
   },
 ];
@@ -91,6 +117,7 @@ export const getLucideIcon = (name: string): LucideIcon | null => {
     case 'BarChart3': return BarChart3;
     case 'ChevronRight': return ChevronRight;
     case 'Clock': return Clock;
+    case 'SlidersHorizontal': return SlidersHorizontal;
     default: return null;
   }
 };
