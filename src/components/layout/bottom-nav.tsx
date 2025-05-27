@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { bottomNavItems, getLucideIcon } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
+import type { LucideIcon } from 'lucide-react';
 
 export function BottomNav() {
   const pathname = usePathname();
@@ -19,15 +20,14 @@ export function BottomNav() {
     <footer className="sticky bottom-0 left-0 right-0 z-20 border-t bg-card shadow-lg md:hidden">
       {/* Only render nav content once mounted on the client to prevent hydration mismatch */}
       {isMounted ? (
-        <nav className="mx-auto flex h-16 max-w-md items-center justify-around px-2">
+        <nav className="flex h-16 items-center justify-around px-2"> {/* Removed mx-auto and max-w-md for simplicity, can be added back if needed for specific centering on larger small screens */}
           {bottomNavItems.map((item) => {
-            const IconComponent = typeof item.icon === 'string' ? getLucideIcon(item.icon) : item.icon;
-            // This logic now runs safely on the client after mount
+            const IconComponent = typeof item.icon === 'string' ? getLucideIcon(item.icon) : item.icon as LucideIcon;
             const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
             
             return (
               <Link
-                key={item.href} // Using href as key, ensure it's unique for nav items
+                key={item.href}
                 href={item.href}
                 className={cn(
                   "flex h-full w-full flex-col items-center justify-center gap-1 rounded-md p-2 transition-colors duration-150 ease-in-out hover:bg-muted/50",
