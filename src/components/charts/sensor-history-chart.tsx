@@ -1,8 +1,9 @@
+
 "use client";
 
 import type { SensorHistoryDataPoint } from '@/lib/mock-data';
 import type { ChartConfig } from "@/components/ui/chart";
-import { SENSOR_DISPLAY_NAMES, SENSOR_ICONS, type SensorType } from '@/lib/constants';
+import { SENSOR_DISPLAY_NAMES, SENSOR_ICON_NAMES, getLucideIcon, type SensorType } from '@/lib/constants';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ChartContainer,
@@ -21,13 +22,14 @@ interface SensorHistoryChartProps {
 
 export function SensorHistoryChart({ sensorType, historyData, unit }: SensorHistoryChartProps) {
   const sensorName = SENSOR_DISPLAY_NAMES[sensorType] || "Sensor";
-  const SensorIcon = SENSOR_ICONS[sensorType];
+  const iconName = SENSOR_ICON_NAMES[sensorType];
+  const SensorIcon = getLucideIcon(iconName);
 
   const chartConfig = {
     value: {
       label: sensorName,
-      color: "hsl(var(--primary))", // Use primary color from theme
-      icon: SensorIcon,
+      color: "hsl(var(--primary))", 
+      icon: SensorIcon || undefined, // Pass undefined if icon is null
     },
   } satisfies ChartConfig;
 

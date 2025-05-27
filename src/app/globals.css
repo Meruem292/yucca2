@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -52,6 +53,16 @@
     --chart-3: 200 60% 50%; /* Muted Blue */
     --chart-4: 0 70% 60%;   /* Muted Red */
     --chart-5: 260 50% 60%; /* Muted Purple */
+
+    /* Sensor item backgrounds for DeviceSummaryCard */
+    --sensor-soil-moisture-bg: 200 80% 92%; /* Light Blue */
+    --sensor-soil-temperature-bg: 30 100% 90%; /* Light Orange */
+    --sensor-air-temperature-bg: 0 80% 92%;   /* Light Red/Pink */
+    --sensor-air-humidity-bg: 140 70% 93%;  /* Light Green */
+
+    /* Progress bar colors */
+    --progress-water: 205 80% 55%;      /* Blue for water */
+    --progress-fertilizer: 100 50% 50%; /* Green/Brown for fertilizer */
   }
 
   .dark {
@@ -94,6 +105,16 @@
 
     --attention-header-background: 50 40% 25%; 
     --attention-header-foreground: 40 80% 70%;
+
+    /* Sensor item backgrounds for DeviceSummaryCard - Dark Theme */
+    --sensor-soil-moisture-bg: 200 50% 25%; 
+    --sensor-soil-temperature-bg: 30 60% 20%;  
+    --sensor-air-temperature-bg: 0 50% 25%;    
+    --sensor-air-humidity-bg: 140 40% 22%;   
+
+    /* Progress bar colors - Dark Theme */
+    --progress-water: 205 70% 65%;      
+    --progress-fertilizer: 100 45% 60%; 
   }
 }
 

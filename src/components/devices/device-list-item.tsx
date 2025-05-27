@@ -1,9 +1,12 @@
+
+"use client";
 import Link from 'next/link';
 import type { Device } from '@/lib/mock-data';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ChevronRight, Droplets, Thermometer, CloudRain } from 'lucide-react'; // Example icons
+import { ChevronRight } from 'lucide-react';
+import { getLucideIcon } from '@/lib/constants';
 
 export function DeviceListItem({ device }: { device: Device }) {
   const previewSensors = device.sensors.slice(0, 3);
@@ -25,10 +28,10 @@ export function DeviceListItem({ device }: { device: Device }) {
         <p className="text-sm text-muted-foreground mb-2">Key Sensor Readings:</p>
         <div className="grid grid-cols-3 gap-2 text-xs">
           {previewSensors.map(sensor => {
-            const Icon = sensor.icon;
+            const Icon = getLucideIcon(sensor.iconName);
             return (
               <div key={sensor.id} className="flex items-center space-x-1 p-2 bg-muted rounded-md">
-                <Icon className="h-4 w-4 text-primary" />
+                {Icon && <Icon className="h-4 w-4 text-primary" />}
                 <span>{sensor.value}{sensor.unit}</span>
               </div>
             );

@@ -1,21 +1,27 @@
+
+"use client"; // Mark as client component for dynamic icon rendering
+
 import Link from 'next/link';
 import type { SensorReading } from '@/lib/mock-data';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
+import { getLucideIcon } from '@/lib/constants'; // Import helper
 
 interface SensorCardProps {
-  sensor: SensorReading;
+  sensor: SensorReading; // Keep original sensor type for now, will adjust if needed
   deviceId: string;
 }
 
 export function SensorCard({ sensor, deviceId }: SensorCardProps) {
-  const SensorIcon = sensor.icon;
+  // Dynamically get the IconComponent based on the iconName string
+  const IconComponent = getLucideIcon(sensor.iconName);
+
   return (
     <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{sensor.name}</CardTitle>
-        <SensorIcon className="h-5 w-5 text-muted-foreground" />
+        {IconComponent && <IconComponent className="h-5 w-5 text-muted-foreground" />}
       </CardHeader>
       <CardContent>
         <div className="text-3xl font-bold">
