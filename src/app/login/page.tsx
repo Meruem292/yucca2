@@ -7,10 +7,9 @@ export default function LoginPage() {
       <Image
         src="https://placehold.co/1920x1080.png"
         alt="Yucca plants in a desert landscape background"
-        layout="fill"
-        objectFit="cover"
-        className="-z-10" // Send to back
-        data-ai-hint="yucca desert"
+        fill
+        className="-z-10 object-cover"
+        data-ai-hint="yucca plant"
         priority // Prioritize loading of the background image
       />
       {/* Optional: Add an overlay for better text readability if needed */}
