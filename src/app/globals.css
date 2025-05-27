@@ -4,94 +4,96 @@
 
 @layer base {
   :root {
-    --background: 60 56% 91%; /* Light Beige #F5F5DC */
-    --foreground: 20 10% 20%; /* Darker color for text on beige */
+    /* Light Theme - Based on the provided image */
+    --background: 220 10% 95%; /* Light bluish gray page background */
+    --foreground: 220 20% 25%; /* Dark text for general content */
 
-    --muted: 60 20% 85%;
-    --muted-foreground: 20 10% 40%;
+    --card: 0 0% 100%; /* White cards */
+    --card-foreground: 220 20% 25%; /* Dark text on cards */
 
-    --popover: 60 56% 91%;
-    --popover-foreground: 20 10% 20%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 25%;
 
-    --card: 60 50% 93%; /* Slightly off-beige for cards */
-    --card-foreground: 20 10% 20%;
+    --primary: 145 58% 40%; /* Yucca Leaf Green (for icons, logout button, primary actions) */
+    --primary-foreground: 0 0% 100%; /* White text on primary green */
 
-    --border: 60 20% 75%;
-    --input: 60 20% 80%;
+    --secondary: 210 40% 92%; /* Slightly darker than page background for secondary elements */
+    --secondary-foreground: 220 20% 35%;
 
-    --primary: 123 44% 38%; /* Forest Green #388E3C */
-    --primary-foreground: 60 56% 91%; /* Light Beige for text on green */
+    --muted: 210 40% 90%; /* Lighter gray for muted elements/borders */
+    --muted-foreground: 215 20% 50%; /* Darker gray for muted text */
 
-    --secondary: 123 30% 50%; /* Lighter green */
-    --secondary-foreground: 0 0% 100%;
+    --accent: 45 90% 55%; /* Example: Orange/Yellow for general accents */
+    --accent-foreground: 20 10% 20%;
 
-    --accent: 20 100% 41%; /* Burnt Orange #D35400 */
-    --accent-foreground: 0 0% 100%; /* White for text on orange */
-
-    --destructive: 0 72% 51%;
+    --destructive: 0 70% 50%; /* Red for warnings like "(Low!)" */
     --destructive-foreground: 0 0% 100%;
 
-    --ring: 123 44% 38%; /* Forest Green for focus rings */
+    --border: 220 10% 88%; /* Light border for cards and inputs */
+    --input: 220 10% 92%;
+    --ring: 145 58% 45%; /* Yucca Leaf Green for focus rings */
 
+    /* Custom colors from image */
+    --header-background: 220 30% 20%; /* Dark blue/slate top bar */
+    --header-foreground: 0 0% 100%;   /* White text in top bar */
+    
+    --dashboard-banner-background: 130 70% 93%; /* Very light soft green banner */
+    --dashboard-banner-foreground: 130 45% 35%; /* Darker green text on banner */
+    --dashboard-banner-title-foreground: 130 50% 28%; /* Even darker for banner title */
+
+    --attention-header-background: 50 100% 90%; /* Light yellow for attention header */
+    --attention-header-foreground: 40 90% 30%;  /* Amber/dark yellow text for attention */
+    
     --radius: 0.5rem;
 
-    /* Sidebar specific colors */
-    --sidebar-background: 123 44% 32%; /* Darker Forest Green */
-    --sidebar-foreground: 60 56% 95%; /* Lighter Beige for text in sidebar */
-    --sidebar-primary: 20 100% 41%; /* Burnt Orange for active/buttons in sidebar */
-    --sidebar-primary-foreground: 0 0% 100%; /* White */
-    --sidebar-accent: 123 44% 42%; /* Lighter green for hover */
-    --sidebar-accent-foreground: 0 0% 100%; /* White */
-    --sidebar-border: 123 44% 28%; /* Darker Green */
-    --sidebar-ring: 20 100% 41%; /* Burnt Orange */
-
-    --chart-1: 123 44% 38%; /* Forest Green */
-    --chart-2: 20 100% 41%; /* Burnt Orange */
-    --chart-3: 123 30% 55%; /* Muted Green */
-    --chart-4: 40 80% 60%; /* Yellowish Orange */
-    --chart-5: 0 50% 50%; /* Muted Red */
+    /* Chart colors */
+    --chart-1: 145 58% 40%; /* Primary Green */
+    --chart-2: 45 90% 55%;  /* Accent Yellow/Orange */
+    --chart-3: 200 60% 50%; /* Muted Blue */
+    --chart-4: 0 70% 60%;   /* Muted Red */
+    --chart-5: 260 50% 60%; /* Muted Purple */
   }
 
   .dark {
-    /* Keeping dark theme somewhat standard, but adjusting to Yucca's feel */
-    --background: 20 10% 10%;
-    --foreground: 60 30% 90%;
+    /* Standard Dark Theme - can be customized further if needed */
+    --background: 220 20% 10%;
+    --foreground: 220 10% 90%;
 
-    --muted: 20 10% 20%;
-    --muted-foreground: 60 30% 70%;
+    --card: 220 20% 15%;
+    --card-foreground: 220 10% 90%;
 
-    --popover: 20 10% 10%;
-    --popover-foreground: 60 30% 90%;
+    --popover: 220 20% 10%;
+    --popover-foreground: 220 10% 90%;
 
-    --card: 20 10% 15%;
-    --card-foreground: 60 30% 90%;
+    --primary: 145 55% 50%; /* Brighter Green for dark mode */
+    --primary-foreground: 0 0% 10%; 
 
-    --border: 20 10% 30%;
-    --input: 20 10% 25%;
+    --secondary: 220 20% 20%;
+    --secondary-foreground: 220 10% 90%;
 
-    --primary: 123 44% 45%; /* Brighter Forest Green */
-    --primary-foreground: 20 10% 5%;
+    --muted: 220 20% 25%;
+    --muted-foreground: 220 10% 70%;
 
-    --secondary: 123 30% 30%;
-    --secondary-foreground: 60 30% 90%;
+    --accent: 45 85% 60%; /* Brighter Yellow/Orange for dark mode */
+    --accent-foreground: 0 0% 10%;
 
-    --accent: 20 100% 50%; /* Brighter Burnt Orange */
-    --accent-foreground: 20 10% 5%;
-
-    --destructive: 0 60% 45%;
+    --destructive: 0 60% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --ring: 123 44% 45%;
+    --border: 220 20% 30%;
+    --input: 220 20% 25%;
+    --ring: 145 55% 50%;
 
-    /* Dark Sidebar specific colors */
-    --sidebar-background: 123 44% 15%; /* Very Dark Green */
-    --sidebar-foreground: 60 40% 80%; 
-    --sidebar-primary: 20 100% 50%; 
-    --sidebar-primary-foreground: 0 0% 0%;
-    --sidebar-accent: 123 44% 25%;
-    --sidebar-accent-foreground: 60 40% 90%;
-    --sidebar-border: 123 44% 10%;
-    --sidebar-ring: 20 100% 50%;
+    /* Custom dark theme colors */
+    --header-background: 220 25% 12%; 
+    --header-foreground: 0 0% 100%;   
+
+    --dashboard-banner-background: 130 30% 20%; 
+    --dashboard-banner-foreground: 130 50% 80%; 
+    --dashboard-banner-title-foreground: 130 50% 90%;
+
+    --attention-header-background: 50 40% 25%; 
+    --attention-header-foreground: 40 80% 70%;
   }
 }
 
