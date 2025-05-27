@@ -45,6 +45,12 @@
     --attention-header-background: 50 100% 90%; /* Light yellow for attention header */
     --attention-header-foreground: 40 90% 30%;  /* Amber/dark yellow text for attention */
     
+    --settings-card-background: 120 60% 96%; /* Very light green for settings cards */
+    --settings-card-foreground: 120 25% 25%; /* Darker green text for settings cards */
+
+    --button-secondary-background: 250 60% 50%; /* Blue/Purple for Add Sample Data button */
+    --button-secondary-foreground: 0 0% 100%;   /* White text for Add Sample Data button */
+
     --radius: 0.5rem;
 
     /* Chart colors */
@@ -105,6 +111,12 @@
 
     --attention-header-background: 50 40% 25%; 
     --attention-header-foreground: 40 80% 70%;
+
+    --settings-card-background: 120 30% 18%; 
+    --settings-card-foreground: 120 25% 80%;
+
+    --button-secondary-background: 250 50% 55%; 
+    --button-secondary-foreground: 0 0% 100%;   
 
     /* Sensor item backgrounds for DeviceSummaryCard - Dark Theme */
     --sensor-soil-moisture-bg: 200 50% 25%; 

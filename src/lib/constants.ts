@@ -18,7 +18,10 @@ import {
   CheckCircle2,
   CircleCheck, 
   Settings2,
-  SlidersHorizontal, // Added for new bottom nav
+  SlidersHorizontal,
+  Plus, // Added for Add New Device button
+  Save, // Added for Save Configuration button
+  ListPlus, // Added for Add Sample Data button
 } from 'lucide-react';
 
 export interface NavItem {
@@ -53,18 +56,18 @@ export const bottomNavItems: NavItem[] = [
     icon: 'LayoutDashboard',
   },
   {
-    title: 'Plants', // Assuming 'Plants' page, using /devices as placeholder
-    href: '/devices', // Placeholder, adjust if a dedicated /plants page exists
+    title: 'Plants', 
+    href: '/devices', 
     icon: 'Leaf',
   },
   {
-    title: 'Control', // Assuming 'Control' page, using /settings as placeholder
-    href: '/settings', // Placeholder, adjust if a dedicated /control page exists
+    title: 'Control', 
+    href: '/settings', // Pointing to new settings page
     icon: 'SlidersHorizontal',
   },
   {
     title: 'Settings',
-    href: '/settings', // Placeholder
+    href: '/settings', // Pointing to new settings page
     icon: 'Settings',
   },
 ];
@@ -79,9 +82,8 @@ export const userNavItems: NavItem[] = [
   },
   {
     title: 'Settings',
-    href: '#', // Placeholder
+    href: '/settings', // Corrected to point to the new settings page
     icon: 'Settings',
-    disabled: true,
   },
 ];
 
@@ -118,6 +120,9 @@ export const getLucideIcon = (name: string): LucideIcon | null => {
     case 'ChevronRight': return ChevronRight;
     case 'Clock': return Clock;
     case 'SlidersHorizontal': return SlidersHorizontal;
+    case 'Plus': return Plus;
+    case 'Save': return Save;
+    case 'ListPlus': return ListPlus;
     default: return null;
   }
 };
