@@ -1,63 +1,112 @@
 
-import { getMockDeviceById, mockDevices, getMockSensorHistory } from '@/lib/mock-data';
-import type { SensorType } from '@/lib/constants';
+"use client";
+
+import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
+import { useParams, notFound, useRouter } from 'next/navigation'; // useRouter might be needed if we redirect invalid sensor types
+import { useAuth } from '@/hooks/useAuth';
+
+import { getDeviceDetails, getDeviceHistory } from '@/lib/firebase/rtdb';
+import type { FirebaseDevice, DeviceHistoryEntry, DeviceSensorReadings } from '@/lib/firebase/types';
+import type { SensorType } from '@/lib/constants'; // Keep this for general sensor type concept
 import { SENSOR_DISPLAY_NAMES, HISTORY_SENSOR_TYPES, getLucideIcon, SENSOR_ICON_NAMES } from '@/lib/constants';
-import { notFound } from 'next/navigation';
+
 import { SensorHistoryChart } from '@/components/charts/sensor-history-chart';
 import { TemperatureHistoryChart } from '@/components/charts/temperature-history-chart';
 import { RecentReadingsTable } from '@/components/devices/recent-readings-table';
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2, AlertTriangle } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
-interface SensorHistoryPageProps {
-  params: {
-    deviceId: string;
-    sensorType: SensorType; // This will be the initially active tab
-  };
-}
+// Map Firebase reading keys to their legacy SensorType for icons/display names
+const firebaseToLegacySensorMap: Record<keyof DeviceSensorReadings, SensorType> = {
+  soilMoisture: 'soil_moisture',
+  soilTemperature: 'soil_temperature',
+  airTemperature: 'air_temperature',
+  airHumidity: 'air_humidity',
+  waterLevel: 'water_level',
+  fertilizerLevel: 'fertilizer_level',
+};
 
-export default async function SensorHistoryPage({ params }: SensorHistoryPageProps) {
-  const device = getMockDeviceById(params.deviceId);
+export default function SensorHistoryPage() {
+  const { user, loading: authLoading } = useAuth();
+  const params = useParams();
+  const router = useRouter(); // Keep for potential redirects
 
-  if (!device) {
-    notFound();
+  const deviceId = typeof params.deviceId === 'string' ? params.deviceId : undefined;
+  const initialSensorType = typeof params.sensorType === 'string' ? params.sensorType as SensorType : 'temperature'; // Default to 'temperature'
+  const userId = user?.uid;
+
+  const { data: device, isLoading: deviceLoading, error: deviceError } = useQuery<FirebaseDevice | null>({
+    queryKey: ['deviceDetails', userId, deviceId],
+    queryFn: () => (userId && deviceId) ? getDeviceDetails(userId, deviceId) : Promise.resolve(null),
+    enabled: !!userId && !!deviceId,
+  });
+
+  const { data: historyData, isLoading: historyLoading, error: historyError } = useQuery<DeviceHistoryEntry[]>({
+    queryKey: ['deviceHistory', userId, deviceId],
+    queryFn: () => (userId && deviceId) ? getDeviceHistory(userId, deviceId) : Promise.resolve([]),
+    enabled: !!userId && !!deviceId,
+  });
+
+  // Validate initialSensorType against HISTORY_SENSOR_TYPES
+  const isValidInitialTab = HISTORY_SENSOR_TYPES.some(tab => tab.id === initialSensorType);
+  const activeTabOrDefault = isValidInitialTab ? initialSensorType : 'temperature';
+
+
+  if (authLoading || (deviceLoading && !device) || (historyLoading && !historyData)) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-10 w-48" />
+        <Skeleton className="h-12 w-full" /> {/* TabsList skeleton */}
+        <Skeleton className="h-80 w-full" /> {/* Chart skeleton */}
+        <Skeleton className="h-64 w-full" /> {/* Table skeleton */}
+      </div>
+    );
   }
 
-  const initialSensorType = params.sensorType;
-  const isValidSensorTypeForTabs = HISTORY_SENSOR_TYPES.some(tab => tab.id === initialSensorType);
+  if (!userId && !authLoading) {
+     return (
+      <div className="text-center py-10">
+        <p className="text-muted-foreground mb-4">Please log in to view device history.</p>
+        <Button asChild>
+          <Link href="/login">Login</Link>
+        </Button>
+      </div>
+    );
+  }
 
-  if (!isValidSensorTypeForTabs) {
-      // Default to 'temperature' or first available if initialSensorType is invalid for tabs
-      // Or redirect to a valid one. For now, let's consider it a near-notFound for simplicity
-      // as this page is designed around these specific tab views.
-      console.warn(`Invalid sensorType '${initialSensorType}' for history page. Defaulting or erroring.`);
-      // For a production app, redirect to /devices/[deviceId]/history/temperature or handle gracefully.
-      // For now, let it proceed and Tabs will default to its first child.
+  if (deviceError || historyError) {
+    return <p className="text-destructive">Error loading device history: {(deviceError || historyError)?.message}</p>;
+  }
+
+  if (!device && !deviceLoading) {
+    notFound();
+    return null;
   }
   
   const getPageTitle = (activeTab: SensorType) => {
     const displayName = SENSOR_DISPLAY_NAMES[activeTab] || "Sensor";
-    return `${displayName} History for ${device.name}`;
+    return `${displayName} History for ${device?.name || 'Device'}`;
   };
+
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
             <Button variant="outline" asChild className="mb-2 sm:mb-0">
-                <Link href={`/devices/${params.deviceId}`}>
+                <Link href={`/devices/${deviceId}`}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to {device.name}
+                Back to {device?.name || 'Device'}
                 </Link>
             </Button>
-            {/* Page title will now be part of each chart card */}
         </div>
       </div>
 
-      <Tabs defaultValue={initialSensorType} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-6">
+      <Tabs defaultValue={activeTabOrDefault} className="w-full">
+        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-3 mb-6">
           {HISTORY_SENSOR_TYPES.map((tab) => {
             const Icon = getLucideIcon(tab.icon);
             return (
@@ -71,41 +120,34 @@ export default async function SensorHistoryPage({ params }: SensorHistoryPagePro
 
         <TabsContent value="soil_moisture">
           <SensorHistoryChart
-            sensorType="soil_moisture"
-            historyData={getMockDeviceById(params.deviceId)?.sensors.find(s => s.id === 'soil_moisture') ? getMockSensorHistory(params.deviceId, 'soil_moisture') : []}
+            fullHistoryData={historyData || []}
+            dataKeyToPlot="soilMoisture"
             unit="%"
-            title={`${SENSOR_DISPLAY_NAMES['soil_moisture']} History for ${device.name}`}
+            title={`${SENSOR_DISPLAY_NAMES['soil_moisture']} History for ${device?.name || 'Device'}`}
             iconName="Droplets"
           />
         </TabsContent>
         <TabsContent value="temperature">
-          <TemperatureHistoryChart deviceId={params.deviceId} />
+          <TemperatureHistoryChart 
+            fullHistoryData={historyData || []} 
+            title={`Temperature History for ${device?.name || 'Device'}`}
+            deviceId={deviceId!}
+          />
         </TabsContent>
         <TabsContent value="air_humidity">
           <SensorHistoryChart
-            sensorType="air_humidity"
-            historyData={getMockDeviceById(params.deviceId)?.sensors.find(s => s.id === 'air_humidity') ? getMockSensorHistory(params.deviceId, 'air_humidity') : []}
+            fullHistoryData={historyData || []}
+            dataKeyToPlot="airHumidity"
             unit="%"
-            title={`${SENSOR_DISPLAY_NAMES['air_humidity']} History for ${device.name}`}
+            title={`${SENSOR_DISPLAY_NAMES['air_humidity']} History for ${device?.name || 'Device'}`}
             iconName="CloudRain"
           />
         </TabsContent>
       </Tabs>
 
-      <RecentReadingsTable deviceId={params.deviceId} />
+      <RecentReadingsTable deviceHistory={historyData || []} deviceId={deviceId!} />
     </div>
   );
 }
 
-export async function generateStaticParams() {
-  const params: { deviceId: string; sensorType: string }[] = [];
-  mockDevices.forEach(device => {
-    HISTORY_SENSOR_TYPES.forEach(tabType => {
-      // Ensure only valid sensor types as defined in HISTORY_SENSOR_TYPES are generated
-      if (device.sensors.some(s => s.id === tabType.id || tabType.id === 'temperature')) {
-         params.push({ deviceId: device.id, sensorType: tabType.id });
-      }
-    });
-  });
-  return params;
-}
+// generateStaticParams is removed as this page is now dynamic

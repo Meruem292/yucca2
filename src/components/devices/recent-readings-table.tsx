@@ -1,8 +1,7 @@
 
 "use client";
 
-import type { RecentReadingRow } from '@/lib/mock-data';
-import { getMockRecentReadings } from '@/lib/mock-data';
+import type { DeviceHistoryEntry } from '@/lib/firebase/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
@@ -14,31 +13,25 @@ import {
 } from "@/components/ui/table";
 import { getLucideIcon } from '@/lib/constants';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { format } from 'date-fns';
 
 interface RecentReadingsTableProps {
-  deviceId: string;
+  deviceHistory: DeviceHistoryEntry[];
+  deviceId: string; // Keep for context if needed, though data comes from deviceHistory
 }
 
 const ClockIcon = getLucideIcon('Clock');
 
-export function RecentReadingsTable({ deviceId }: RecentReadingsTableProps) {
-  const recentReadings = getMockRecentReadings(deviceId);
+export function RecentReadingsTable({ deviceHistory, deviceId }: RecentReadingsTableProps) {
+  // Get the last 6 entries, assuming history is sorted newest to oldest by Firebase key (timestamp)
+  // Or sort it if not guaranteed. For now, assuming serverTimestamp keys are sortable.
+  const recentReadings = deviceHistory
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .slice(0, 6);
 
-  const formatValue = (value: string | null) => {
+  const formatValue = (value: number | undefined | null, unit: string = '') => {
     if (value === null || value === undefined) return <span className="text-muted-foreground">N/A</span>;
-    
-    // Basic color styling based on image (blue for moisture, red for temp potentially if out of range)
-    // This is a simplified version. Real thresholds would be needed.
-    if (value.includes('%')) {
-        const numVal = parseInt(value);
-        if (numVal < 30) return <span className="text-destructive">{value}</span>; // Example for low moisture
-        return <span className="text-blue-600 dark:text-blue-400">{value}</span>;
-    }
-     if (value.includes('°C')) {
-        const numVal = parseFloat(value);
-        if (numVal < 10 || numVal > 30) return <span className="text-destructive">{value}</span>; // Example for out of range temp
-    }
-    return value;
+    return `${value}${unit}`;
   };
 
   return (
@@ -54,7 +47,7 @@ export function RecentReadingsTable({ deviceId }: RecentReadingsTableProps) {
         {recentReadings.length === 0 ? (
           <p className="text-muted-foreground text-center py-4">No recent readings available.</p>
         ) : (
-          <ScrollArea className="h-[300px] w-full"> {/* Makes table scrollable if content overflows */}
+          <ScrollArea className="h-[300px] w-full">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -67,12 +60,14 @@ export function RecentReadingsTable({ deviceId }: RecentReadingsTableProps) {
               </TableHeader>
               <TableBody>
                 {recentReadings.map((reading) => (
-                  <TableRow key={reading.id}>
-                    <TableCell className="font-medium text-xs">{reading.time}</TableCell>
-                    <TableCell className="text-center">{formatValue(reading.soil_moisture)}</TableCell>
-                    <TableCell className="text-center">{formatValue(reading.soil_temperature)}</TableCell>
-                    <TableCell className="text-center">{formatValue(reading.air_temperature)}</TableCell>
-                    <TableCell className="text-center">{formatValue(reading.air_humidity)}</TableCell>
+                  <TableRow key={reading.timestamp}>
+                    <TableCell className="font-medium text-xs">
+                      {format(new Date(reading.timestamp), "MMM d, h:mm:ss a")}
+                    </TableCell>
+                    <TableCell className="text-center">{formatValue(reading.soilMoisture, '%')}</TableCell>
+                    <TableCell className="text-center">{formatValue(reading.soilTemperature, '°C')}</TableCell>
+                    <TableCell className="text-center">{formatValue(reading.airTemperature, '°C')}</TableCell>
+                    <TableCell className="text-center">{formatValue(reading.airHumidity, '%')}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

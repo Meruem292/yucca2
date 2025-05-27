@@ -1,10 +1,9 @@
 
 "use client";
 
-import type { TemperatureHistoryDataPoint } from '@/lib/mock-data';
-import { getMockTemperatureHistory } from '@/lib/mock-data';
+import type { DeviceHistoryEntry } from '@/lib/firebase/types';
 import type { ChartConfig } from "@/components/ui/chart";
-import { SENSOR_DISPLAY_NAMES, getLucideIcon } from '@/lib/constants';
+import { SENSOR_DISPLAY_NAMES, SENSOR_ICON_NAMES, getLucideIcon } from '@/lib/constants';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ChartContainer,
@@ -17,36 +16,49 @@ import { LineChart, Line, CartesianGrid, XAxis, YAxis, ResponsiveContainer, Tool
 import type { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
 import { format } from 'date-fns';
 
-interface TemperatureHistoryChartProps {
-  deviceId: string;
+interface TemperatureHistoryDataPoint {
+  date: string; // ISO string or formatted for chart
+  soil_temperature: number | null;
+  air_temperature: number | null;
 }
 
-const ChartIcon = getLucideIcon('BarChart3'); // Or 'Thermometer'
+interface TemperatureHistoryChartProps {
+  fullHistoryData: DeviceHistoryEntry[];
+  title: string;
+  deviceId: string; // Keep deviceId if needed for other purposes, though data comes from fullHistoryData
+}
 
-export function TemperatureHistoryChart({ deviceId }: TemperatureHistoryChartProps) {
-  // In a real app, you might fetch this data
-  const historyData = getMockTemperatureHistory(deviceId);
+const ChartIcon = getLucideIcon('BarChart3');
+
+export function TemperatureHistoryChart({ fullHistoryData, title, deviceId }: TemperatureHistoryChartProps) {
+  const chartData: TemperatureHistoryDataPoint[] = fullHistoryData
+    .map(entry => ({
+      date: entry.timestamp,
+      soil_temperature: entry.soilTemperature ?? null,
+      air_temperature: entry.airTemperature ?? null,
+    }))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   const chartConfig = {
     soil_temperature: {
       label: SENSOR_DISPLAY_NAMES['soil_temperature'],
-      color: "hsl(var(--chart-4))", // Reddish
+      color: "hsl(var(--chart-4))", 
       icon: getLucideIcon(SENSOR_ICON_NAMES['soil_temperature']) || undefined,
     },
     air_temperature: {
       label: SENSOR_DISPLAY_NAMES['air_temperature'],
-      color: "hsl(var(--chart-2))", // Orange/Yellow
+      color: "hsl(var(--chart-2))", 
       icon: getLucideIcon(SENSOR_ICON_NAMES['air_temperature']) || undefined,
     },
   } satisfies ChartConfig;
 
-  if (historyData.length === 0) {
+  if (chartData.length === 0) {
     return (
-      <Card>
+      <Card className="shadow-lg rounded-xl">
         <CardHeader>
-          <CardTitle className="flex items-center">
-            {ChartIcon && <ChartIcon className="mr-2 h-6 w-6 text-muted-foreground" />}
-            Temperature History
+          <CardTitle className="flex items-center text-xl">
+            {ChartIcon && <ChartIcon className="mr-2 h-5 w-5 text-primary" />}
+            {title}
           </CardTitle>
           <CardDescription>No historical temperature data available for this device.</CardDescription>
         </CardHeader>
@@ -66,7 +78,7 @@ export function TemperatureHistoryChart({ deviceId }: TemperatureHistoryChartPro
           <p className="text-sm font-medium text-foreground mb-1.5">{formattedDate}</p>
           {payload.map((pld) => (
             <div key={pld.dataKey} style={{ color: pld.color }} className="text-sm">
-              {`${pld.name}: ${pld.value}°C`}
+              {pld.value !== null ? `${pld.name}: ${pld.value}°C` : `${pld.name}: N/A`}
             </div>
           ))}
         </div>
@@ -80,7 +92,7 @@ export function TemperatureHistoryChart({ deviceId }: TemperatureHistoryChartPro
       <CardHeader>
         <CardTitle className="flex items-center text-xl">
            {ChartIcon && <ChartIcon className="mr-2 h-5 w-5 text-primary" />}
-           Temperature History
+           {title}
         </CardTitle>
         <CardDescription>Historical soil and air temperature readings (°C).</CardDescription>
       </CardHeader>
@@ -88,7 +100,7 @@ export function TemperatureHistoryChart({ deviceId }: TemperatureHistoryChartPro
         <ChartContainer config={chartConfig} className="h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
-              data={historyData}
+              data={chartData}
               margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
             >
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -98,14 +110,14 @@ export function TemperatureHistoryChart({ deviceId }: TemperatureHistoryChartPro
                 axisLine={false}
                 tickMargin={8}
                 tickFormatter={(value) => format(new Date(value), "MMM d, h:mm a")}
-                minTickGap={30} // Adjust to prevent overcrowding
+                minTickGap={30} 
               />
               <YAxis
                 tickFormatter={(value) => `${value}°C`}
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
-                domain={[0, 30]} // As per image
+                domain={[0, 'auto']} // Adjusted domain
                 allowDataOverflow={true}
               />
               <ChartTooltip
@@ -121,6 +133,7 @@ export function TemperatureHistoryChart({ deviceId }: TemperatureHistoryChartPro
                 dot={{ r: 3, fill: "var(--color-soil_temperature)" }}
                 activeDot={{ r: 5 }}
                 name={SENSOR_DISPLAY_NAMES['soil_temperature']}
+                connectNulls // Important for lines with null values
               />
               <Line
                 dataKey="air_temperature"
@@ -130,6 +143,7 @@ export function TemperatureHistoryChart({ deviceId }: TemperatureHistoryChartPro
                 dot={{ r: 3, fill: "var(--color-air_temperature)" }}
                 activeDot={{ r: 5 }}
                 name={SENSOR_DISPLAY_NAMES['air_temperature']}
+                connectNulls // Important for lines with null values
               />
             </LineChart>
           </ResponsiveContainer>
