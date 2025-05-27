@@ -1,12 +1,16 @@
 
 "use client";
-import type { Device, SensorReading } from '@/lib/mock-data';
+import type { Device, SensorReading, SensorHistoryDataPoint } from '@/lib/mock-data';
 import { SENSOR_DISPLAY_NAMES, type SensorType, getLucideIcon, SENSOR_ICON_NAMES } from '@/lib/constants';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
-import { Smartphone, ChevronRight, Droplets, Thermometer, CloudRain, BarChartHorizontalBig } from 'lucide-react';
+import { Smartphone, ChevronRight } from 'lucide-react';
+import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis } from 'recharts';
+import { getMockSensorHistory } from '@/lib/mock-data';
+import type { ChartConfig } from "@/components/ui/chart";
+import { ChartContainer } from "@/components/ui/chart";
 
 interface DeviceSummaryCardProps {
   device: Device;
@@ -29,6 +33,15 @@ export function DeviceSummaryCard({ device }: DeviceSummaryCardProps) {
 
   const sensorIds: SensorType[] = ['soil_moisture', 'soil_temperature', 'air_temperature', 'air_humidity'];
 
+  const soilMoistureHistory: SensorHistoryDataPoint[] = getMockSensorHistory(device.id, 'soil_moisture');
+
+  const chartConfig = {
+    soilMoisture: {
+      label: "Soil Moisture", // Not displayed in this mini chart, but good for config
+      color: "hsl(var(--chart-3))", // Muted Blue from globals.css
+    },
+  } satisfies ChartConfig;
+
   return (
     <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-xl overflow-hidden">
       <CardHeader className="p-4 bg-muted/20 border-b">
@@ -38,7 +51,7 @@ export function DeviceSummaryCard({ device }: DeviceSummaryCardProps) {
             <CardTitle className="text-lg font-semibold">{device.name}</CardTitle>
           </div>
           <Badge variant="outline" className="text-xs" asChild>
-            <Link href={`/devices/${device.id}`}>{device.location}</Link>
+            <Link href={`/devices/${device.id}`}>{device.location} <ChevronRight className="h-3 w-3 ml-0.5" /></Link>
           </Badge>
         </div>
       </CardHeader>
@@ -46,7 +59,7 @@ export function DeviceSummaryCard({ device }: DeviceSummaryCardProps) {
         <div className="grid grid-cols-2 gap-3">
           {sensorIds.map((id) => {
             const sensor = getSensorReading(id);
-            const IconComponent = sensor ? getLucideIcon(sensor.iconName) : Droplets; // Default icon
+            const IconComponent = sensor ? getLucideIcon(sensor.iconName) : getLucideIcon(SENSOR_ICON_NAMES[id]);
             const bgColor = getSensorBackgroundColor(id);
             return (
               <div key={id} className={`p-3 rounded-lg ${bgColor} space-y-1 shadow-sm`}>
@@ -84,9 +97,26 @@ export function DeviceSummaryCard({ device }: DeviceSummaryCardProps) {
         
         <div>
             <h4 className="text-sm font-medium mb-1.5 text-muted-foreground">Historical Trends (30d)</h4>
-            <div className="bg-muted/30 p-3 rounded-lg flex items-center justify-center h-20">
-                <BarChartHorizontalBig className="w-10 h-10 text-primary/50" />
-                <p className="text-xs text-muted-foreground ml-2">Chart placeholder</p>
+            <div className="h-[60px] rounded-lg bg-muted/30 p-1">
+              {soilMoistureHistory.length > 0 ? (
+                <ChartContainer config={chartConfig} className="w-full h-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart 
+                      data={soilMoistureHistory} 
+                      margin={{ top: 2, right: 2, left: 2, bottom: 2 }}
+                      barCategoryGap="20%"
+                    >
+                      <XAxis dataKey="date" hide />
+                      <YAxis hide domain={[0, 100]} />
+                      <Bar dataKey="value" fill="var(--color-soilMoisture)" radius={2} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-xs text-muted-foreground">No trend data available</p>
+                </div>
+              )}
             </div>
         </div>
 
