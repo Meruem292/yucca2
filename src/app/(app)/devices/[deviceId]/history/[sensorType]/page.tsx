@@ -1,8 +1,8 @@
 
-import { getMockDeviceById, mockDevices } from '@/lib/mock-data';
+import { getMockDeviceById, mockDevices, getMockSensorHistory } from '@/lib/mock-data';
 import type { SensorType } from '@/lib/constants';
-import { SENSOR_DISPLAY_NAMES, HISTORY_SENSOR_TYPES, getLucideIcon } from '@/lib/constants';
-import { notFound, useRouter } from 'next/navigation';
+import { SENSOR_DISPLAY_NAMES, HISTORY_SENSOR_TYPES, getLucideIcon, SENSOR_ICON_NAMES } from '@/lib/constants';
+import { notFound } from 'next/navigation';
 import { SensorHistoryChart } from '@/components/charts/sensor-history-chart';
 import { TemperatureHistoryChart } from '@/components/charts/temperature-history-chart';
 import { RecentReadingsTable } from '@/components/devices/recent-readings-table';
@@ -101,7 +101,10 @@ export async function generateStaticParams() {
   const params: { deviceId: string; sensorType: string }[] = [];
   mockDevices.forEach(device => {
     HISTORY_SENSOR_TYPES.forEach(tabType => {
-      params.push({ deviceId: device.id, sensorType: tabType.id });
+      // Ensure only valid sensor types as defined in HISTORY_SENSOR_TYPES are generated
+      if (device.sensors.some(s => s.id === tabType.id || tabType.id === 'temperature')) {
+         params.push({ deviceId: device.id, sensorType: tabType.id });
+      }
     });
   });
   return params;
