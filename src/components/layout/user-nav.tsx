@@ -46,7 +46,7 @@ export function UserNav() {
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           {userNavItems.map((item) => (
-            <DropdownMenuItem key={item.href} asChild disabled={item.disabled}>
+            <DropdownMenuItem key={item.title} asChild disabled={item.disabled}>
               <Link href={item.href}>
                 <item.icon className="mr-2 h-4 w-4" />
                 <span>{item.title}</span>
