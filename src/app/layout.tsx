@@ -26,6 +26,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
+        {/* QueryClientProvider is moved to src/app/(app)/layout.tsx as it's app-specific */}
         {children}
         <Toaster />
       </body>

@@ -15,28 +15,20 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { userNavItems } from '@/lib/constants';
 import { LogOut } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from "next/navigation";
 import { signOutUser } from '@/lib/firebase/auth'; 
 import { useToast } from '@/hooks/use-toast';
-import { auth } from '@/lib/firebase/config'; 
-import { useEffect, useState } from 'react';
-import type { User } from 'firebase/auth';
+import { useAuth } from '@/hooks/useAuth'; // Import the custom auth hook
+import React, { useState } from 'react'; // Keep React import for useState
 
 export function UserNav() {
   const router = useRouter();
   const { toast } = useToast();
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      setCurrentUser(user);
-    });
-    return () => unsubscribe();
-  }, []);
+  const { user: currentUser, loading: authLoading } = useAuth(); // Use our hook
+  const [isLogoutLoading, setIsLogoutLoading] = useState(false);
 
   const handleLogout = async () => {
-    setIsLoading(true);
+    setIsLogoutLoading(true);
     try {
       await signOutUser();
       toast({
@@ -52,7 +44,7 @@ export function UserNav() {
         variant: 'destructive',
       });
     } finally {
-      setIsLoading(false);
+      setIsLogoutLoading(false);
     }
   };
   
@@ -63,6 +55,10 @@ export function UserNav() {
       return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
     }
     return name.substring(0, 2).toUpperCase();
+  }
+
+  if (authLoading) {
+    return <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">...</Button>; // Or a skeleton
   }
 
   if (!currentUser) {
@@ -111,12 +107,11 @@ export function UserNav() {
           ))}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout} disabled={isLoading} className="cursor-pointer">
+        <DropdownMenuItem onClick={handleLogout} disabled={isLogoutLoading} className="cursor-pointer">
           <LogOut className="mr-2 h-4 w-4" />
-          <span>{isLoading ? "Logging out..." : "Log out"}</span>
+          <span>{isLogoutLoading ? "Logging out..." : "Log out"}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
-

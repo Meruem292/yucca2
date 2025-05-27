@@ -1,14 +1,68 @@
 
-import { mockDevices } from '@/lib/mock-data';
+"use client";
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/hooks/useAuth';
+import { getUserStats, getUserDevices } from '@/lib/firebase/rtdb';
+import type { UserStats, FirebaseDevice } from '@/lib/firebase/types';
+
 import { DeviceSummaryCard } from '@/components/dashboard/device-summary-card';
+import { StatCard } from '@/components/dashboard/stat-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart3, Clock, Leaf, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Button } from '@/components/ui/button'; // Added
+import Link from 'next/link'; // Added
+import { BarChart3, Clock, Leaf, AlertTriangle, CheckCircle2, PackageSearch, Droplets, Thermometer, Wind, PlusCircle } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
-export default async function DashboardPage() {
-  const devices = mockDevices; // In a real app, fetch this data
+export default function DashboardPage() {
+  const { user, loading: authLoading } = useAuth();
+  const userId = user?.uid;
 
-  // Example data for "Plants Needing Attention" - can be dynamic
-  const plantsHealthy = true; 
+  const { data: userStats, isLoading: statsLoading, error: statsError } = useQuery<UserStats | null>({
+    queryKey: ['userStats', userId],
+    queryFn: () => userId ? getUserStats(userId) : Promise.resolve(null),
+    enabled: !!userId,
+  });
+
+  const { data: devices, isLoading: devicesLoading, error: devicesError } = useQuery<FirebaseDevice[]>({
+    queryKey: ['userDevices', userId],
+    queryFn: () => userId ? getUserDevices(userId) : Promise.resolve([]),
+    enabled: !!userId,
+  });
+
+  // Example data for "Plants Needing Attention" - can be dynamic based on actual device data later
+  const plantsHealthy = true; // Placeholder: derive this from device statuses or critical readings
+
+  if (authLoading) {
+    return (
+      <div className="space-y-8">
+        <Skeleton className="h-24 w-full rounded-lg" />
+        <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-32 rounded-lg" />)}
+        </div>
+        <Skeleton className="h-64 w-full rounded-lg" />
+      </div>
+    );
+  }
+  
+  if (!userId) {
+     return (
+      <div className="text-center py-10">
+        <p className="text-muted-foreground mb-4">Please log in to view your dashboard.</p>
+        <Button asChild>
+          <Link href="/login">Login</Link>
+        </Button>
+      </div>
+    );
+  }
+  
+  if (statsError || devicesError) {
+    return <p className="text-destructive">Error loading dashboard data. Please try again later.</p>;
+  }
+
+  const activePlants = userStats?.activePlants ?? devices?.length ?? 0;
+  const activeSensors = userStats?.activeSensors ?? (devices?.reduce((acc, dev) => acc + Object.keys(dev.readings || {}).length, 0) || 0);
+
 
   return (
     <div className="space-y-8">
@@ -25,29 +79,76 @@ export default async function DashboardPage() {
         </div>
       </div>
 
+      {/* Stats Grid */}
+      <section>
+         <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {statsLoading ? (
+              <>
+                <Skeleton className="h-32 rounded-lg" />
+                <Skeleton className="h-32 rounded-lg" />
+                <Skeleton className="h-32 rounded-lg" />
+                <Skeleton className="h-32 rounded-lg" />
+              </>
+            ) : (
+              <>
+                <StatCard title="Active Plants" value={activePlants} icon={Leaf} />
+                <StatCard title="Active Sensors" value={activeSensors} icon={Thermometer} /> 
+                <StatCard 
+                  title="Water Level" 
+                  value={`${userStats?.waterLevel ?? 0}%`} 
+                  icon={Droplets} 
+                  description={(userStats?.waterLevel ?? 100) < 20 ? "(Low!)" : undefined}
+                  descriptionClassName={(userStats?.waterLevel ?? 100) < 20 ? "text-destructive font-semibold" : undefined}
+                />
+                <StatCard 
+                  title="Fertilizer Level" 
+                  value={`${userStats?.fertilizerLevel ?? 0}%`} 
+                  icon={PackageSearch} // Using PackageSearch as a stand-in for fertilizer icon
+                />
+              </>
+            )}
+          </div>
+      </section>
+
+
       {/* Device Analytics Section */}
       <section>
-        <div className="flex items-center gap-2 mb-4">
-          <BarChart3 className="h-6 w-6 text-primary" />
-          <h2 className="text-xl font-semibold tracking-tight text-foreground">Device Analytics</h2>
+        <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+                <BarChart3 className="h-6 w-6 text-primary" />
+                <h2 className="text-xl font-semibold tracking-tight text-foreground">Device Analytics</h2>
+            </div>
+             <Button asChild variant="outline" size="sm">
+                <Link href="/devices/register">
+                    <PlusCircle className="mr-2 h-4 w-4" /> Add Device
+                </Link>
+            </Button>
         </div>
-        {devices.length > 0 ? (
+        {devicesLoading ? (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <Skeleton className="h-[280px] rounded-xl" />
+                <Skeleton className="h-[280px] rounded-xl" />
+                <Skeleton className="h-[280px] rounded-xl" />
+            </div>
+        ) : devices && devices.length > 0 ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {devices.map((device) => (
-              <DeviceSummaryCard key={device.id} device={device} />
+              <DeviceSummaryCard key={device.key} device={device} />
             ))}
           </div>
         ) : (
           <Card className="text-center py-10">
             <CardContent>
               <p className="text-muted-foreground">No devices registered yet.</p>
-              {/* Optionally add a button to register a device */}
+              <Button asChild className="mt-4">
+                 <Link href="/devices/register">Register Your First Device</Link>
+              </Button>
             </CardContent>
           </Card>
         )}
       </section>
 
-      {/* Recent Activity Section - (Plants needing attention moved here) */}
+      {/* Recent Activity / Alerts Section */}
       <section>
         <div className="flex items-center gap-2 mb-4">
           <Clock className="h-6 w-6 text-primary" />

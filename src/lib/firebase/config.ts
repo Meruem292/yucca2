@@ -9,14 +9,14 @@ import { getStorage, type FirebaseStorage } from "firebase/storage";
 // You can find these in your Firebase project settings:
 // Project Overview > (Gear Icon) > Project settings > General tab > Your apps > Web app > Config
 const firebaseConfig = {
-  apiKey: "YOUR_ACTUAL_API_KEY_HERE", // <--- REPLACE THIS!
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com", // <--- REPLACE THIS! (Ensure YOUR_PROJECT_ID is your actual project ID)
-  databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com", // <--- REPLACE THIS or REMOVE if not using Realtime Database
-  projectId: "YOUR_PROJECT_ID", // <--- REPLACE THIS!
-  storageBucket: "YOUR_PROJECT_ID.appspot.com", // <--- REPLACE THIS!
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID", // <--- REPLACE THIS!
-  appId: "YOUR_APP_ID", // <--- REPLACE THIS!
-  measurementId: "YOUR_MEASUREMENT_ID" // <--- REPLACE THIS (Optional, or remove)
+  apiKey: "AIzaSyBPEswJbXXgr_B3hUvfHpFkR9QMKuUQJn8",
+  authDomain: "yucca-a3092.firebaseapp.com",
+  databaseURL: "https://yucca-a3092-default-rtdb.firebaseio.com",
+  projectId: "yucca-a3092",
+  storageBucket: "yucca-a3092.firebasestorage.app",
+  messagingSenderId: "1010415262149",
+  appId: "1:1010415262149:web:e07c2a5a1057d360f353ac",
+  measurementId: "G-8VY4PL4E4W"
 };
 
 // --- Configuration Verification & Logging ---
