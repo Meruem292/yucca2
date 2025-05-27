@@ -1,4 +1,5 @@
-import { getMockDeviceById } from '@/lib/mock-data';
+
+import { getMockDeviceById, mockDevices } from '@/lib/mock-data'; // Added mockDevices import
 import type { Device } from '@/lib/mock-data';
 import { notFound } from 'next/navigation';
 import { SensorCard } from '@/components/dashboard/sensor-card';
@@ -37,15 +38,15 @@ export default async function DeviceDetailPage({ params }: DeviceDetailPageProps
               <CardTitle className="text-3xl font-bold">{device.name}</CardTitle>
               <CardDescription className="text-md">Unique ID: {device.uniqueId}</CardDescription>
             </div>
-            <Badge 
-              variant={device.isConnected ? 'default' : 'destructive'} 
+            <Badge
+              variant={device.isConnected ? 'default' : 'destructive'}
               className={`mt-2 sm:mt-0 px-3 py-1 text-sm ${device.isConnected ? 'bg-green-100 text-green-700 border-green-300' : 'bg-red-100 text-red-700 border-red-300'}`}
             >
               {device.isConnected ? 'Connected & Online' : 'Offline'}
             </Badge>
           </div>
         </CardHeader>
-        
+
         <CardContent className="p-6">
           <section className="mb-8">
             <h2 className="text-xl font-semibold mb-4">Current Sensor Readings</h2>
