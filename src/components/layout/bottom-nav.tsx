@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { bottomNavItems, getLucideIcon } from '@/lib/constants';
 import { cn } from '@/lib/utils';
-import { useState, useEffect } from 'react'; // Import useState and useEffect
+import { useState, useEffect } from 'react';
 
 export function BottomNav() {
   const pathname = usePathname();
@@ -18,7 +18,7 @@ export function BottomNav() {
   return (
     <footer className="sticky bottom-0 left-0 right-0 z-20 border-t bg-card shadow-lg md:hidden">
       {/* Only render nav content once mounted on the client to prevent hydration mismatch */}
-      {isMounted && (
+      {isMounted ? (
         <nav className="mx-auto flex h-16 max-w-md items-center justify-around px-2">
           {bottomNavItems.map((item) => {
             const IconComponent = typeof item.icon === 'string' ? getLucideIcon(item.icon) : item.icon;
@@ -27,7 +27,7 @@ export function BottomNav() {
             
             return (
               <Link
-                key={item.title}
+                key={item.title} // Ensure item.title is unique
                 href={item.href}
                 className={cn(
                   "flex h-full w-full flex-col items-center justify-center gap-1 rounded-md p-2 transition-colors duration-150 ease-in-out hover:bg-muted/50",
@@ -44,7 +44,7 @@ export function BottomNav() {
             );
           })}
         </nav>
-      )}
+      ) : null} {/* Explicitly render null when not mounted to ensure server/client match */}
     </footer>
   );
 }
