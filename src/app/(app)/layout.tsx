@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { APP_NAME } from '@/lib/constants';
 import { Leaf } from 'lucide-react';
 import { UserNav } from '@/components/layout/user-nav';
-// import { BottomNav } from '@/components/layout/bottom-nav'; // Removed import
+import { BottomNav } from '@/components/layout/bottom-nav';
 
 export const metadata: Metadata = {
   title: `${APP_NAME} - Plant Monitor`,
@@ -21,10 +21,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </Link>
         <UserNav />
       </header>
-      <main className="flex-1 overflow-y-auto p-4 sm:p-6"> {/* Removed pb-20 */}
+      <main className="flex-1 overflow-y-auto p-4 pb-20 sm:p-6 sm:pb-20"> {/* Added pb-20 for bottom nav */}
         {children}
       </main>
-      {/* <BottomNav /> */} {/* BottomNav component removed */}
+      <BottomNav /> {/* BottomNav component re-added */}
     </div>
   );
 }

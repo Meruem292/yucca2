@@ -19,9 +19,10 @@ import {
   CircleCheck, 
   Settings2,
   SlidersHorizontal,
-  Plus, // Added for Add New Device button
-  Save, // Added for Save Configuration button
-  ListPlus, // Added for Add Sample Data button
+  Plus, 
+  Save, 
+  ListPlus,
+  LogOut, // Added for UserNav fallback
 } from 'lucide-react';
 
 export interface NavItem {
@@ -62,12 +63,12 @@ export const bottomNavItems: NavItem[] = [
   },
   {
     title: 'Control', 
-    href: '/settings', // Pointing to new settings page
+    href: '/devices/register', // Example different link for control - adjust as needed
     icon: 'SlidersHorizontal',
   },
   {
     title: 'Settings',
-    href: '/settings', // Pointing to new settings page
+    href: '/settings', 
     icon: 'Settings',
   },
 ];
@@ -76,13 +77,13 @@ export const bottomNavItems: NavItem[] = [
 export const userNavItems: NavItem[] = [
  {
     title: 'Profile',
-    href: '#', // Placeholder
-    icon: 'Settings', 
-    disabled: true,
+    href: '/settings', // Placeholder, can be refined to a specific profile page
+    icon: 'Settings2', // Using Settings2 for a different look than main settings
+    disabled: false, // Assuming profile is not disabled
   },
   {
     title: 'Settings',
-    href: '/settings', // Corrected to point to the new settings page
+    href: '/settings', 
     icon: 'Settings',
   },
 ];
@@ -123,6 +124,7 @@ export const getLucideIcon = (name: string): LucideIcon | null => {
     case 'Plus': return Plus;
     case 'Save': return Save;
     case 'ListPlus': return ListPlus;
+    case 'LogOut': return LogOut;
     default: return null;
   }
 };

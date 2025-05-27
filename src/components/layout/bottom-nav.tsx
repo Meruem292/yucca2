@@ -27,7 +27,7 @@ export function BottomNav() {
             
             return (
               <Link
-                key={item.title} // Ensure item.title is unique
+                key={item.href} // Using href as key, ensure it's unique for nav items
                 href={item.href}
                 className={cn(
                   "flex h-full w-full flex-col items-center justify-center gap-1 rounded-md p-2 transition-colors duration-150 ease-in-out hover:bg-muted/50",
