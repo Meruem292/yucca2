@@ -16,28 +16,29 @@ import {
 import { userNavItems, getLucideIcon } from '@/lib/constants';
 import { LogOut } from 'lucide-react';
 import { useRouter } from "next/navigation";
-import { signOutUser } from '@/lib/firebase/auth'; 
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth'; 
+import { signOutUser } from '@/lib/firebase/auth';
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from '@/hooks/useAuth';
 import React, { useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 
 export function UserNav() {
   const router = useRouter();
   const { toast } = useToast();
-  const { user: currentUser, loading: authLoading } = useAuth(); 
+  const { user: currentUser, loading: authLoading } = useAuth();
   const [isLogoutLoading, setIsLogoutLoading] = useState(false);
 
   const handleLogout = async () => {
     setIsLogoutLoading(true);
     try {
       await signOutUser();
+      // Navigate to login page first
+      router.push('/login');
       toast({
         title: 'Logged Out',
         description: 'You have been successfully logged out.',
       });
-      router.push('/login');
-      router.refresh(); 
+      // router.refresh(); // Removed to prevent potential flicker of current page re-rendering as "logged out"
     } catch (error: any) {
       toast({
         title: 'Logout Failed',
@@ -48,7 +49,7 @@ export function UserNav() {
       setIsLogoutLoading(false);
     }
   };
-  
+
   const getInitials = (name?: string | null) => {
     if (!name) return "?";
     const names = name.split(' ');
@@ -59,7 +60,8 @@ export function UserNav() {
   }
 
   if (authLoading) {
-    return <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">...</Button>; 
+    // Simple loading state for the button area
+    return <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">...</Button>;
   }
 
   if (!currentUser) {
@@ -80,7 +82,7 @@ export function UserNav() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">
           <Avatar className="h-9 w-9 border-2 border-primary/70">
-            <AvatarImage src={currentUser?.photoURL || ""} alt="User avatar" />
+            <AvatarImage src={currentUser?.photoURL || ""} alt={currentUser?.displayName || currentUser?.email || "User avatar"} />
             <AvatarFallback className="bg-muted text-muted-foreground font-semibold">
               {getInitials(currentUser?.displayName || currentUser?.email)}
             </AvatarFallback>
