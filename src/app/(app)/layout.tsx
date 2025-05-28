@@ -21,10 +21,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <div className="flex min-h-screen flex-col bg-background">
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-[hsl(var(--header-background))] px-4 shadow-sm sm:px-6">
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-card px-4 shadow-sm sm:px-6">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <Leaf className="h-7 w-7 text-[hsl(var(--header-foreground))]" />
-            <span className="text-lg font-semibold text-[hsl(var(--header-foreground))] sm:text-xl">{APP_NAME}</span>
+            <Leaf className="h-7 w-7 text-card-foreground" />
+            <span className="text-lg font-semibold text-card-foreground sm:text-xl">{APP_NAME}</span>
           </Link>
           <UserNav />
         </header>
