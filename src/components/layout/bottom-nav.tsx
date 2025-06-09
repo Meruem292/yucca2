@@ -23,7 +23,20 @@ export function BottomNav() {
         <nav className="flex h-16 items-center justify-around px-2"> {/* Removed mx-auto and max-w-md for simplicity, can be added back if needed for specific centering on larger small screens */}
           {bottomNavItems.map((item) => {
             const IconComponent = typeof item.icon === 'string' ? getLucideIcon(item.icon) : item.icon as LucideIcon;
-            const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
+            
+            let isActive;
+            if (item.href === '/devices') {
+              // Special handling for "Plants" tab:
+              // Active if path is exactly /devices OR starts with /devices/ BUT is NOT /devices/register
+              isActive = pathname === '/devices' || 
+                         (pathname.startsWith('/devices/') && pathname !== '/devices/register');
+            } else {
+              // General logic for other tabs (includes exact match or startsWith for non-dashboard items)
+              isActive = pathname === item.href || 
+                         (item.href !== '/dashboard' && 
+                          item.href !== '/devices' && // Avoid double-checking /devices here
+                          pathname.startsWith(item.href));
+            }
             
             return (
               <Link
@@ -48,4 +61,3 @@ export function BottomNav() {
     </footer>
   );
 }
-
