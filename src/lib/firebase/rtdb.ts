@@ -177,6 +177,10 @@ export async function registerNewDevice(userId: string, deviceName: string, uniq
         pumpDurations: defaultPumpDurations,
         smsReceiver: defaultSmsReceiver,
       } : {},
+      manualControl: { // Initialize manual control states
+        waterPumpActive: false,
+        fertilizerPumpActive: false,
+      }
     };
 
     await set(newDeviceRef, newDeviceData);
@@ -185,5 +189,27 @@ export async function registerNewDevice(userId: string, deviceName: string, uniq
   } catch (error) {
     console.error("Error registering new device:", error);
     return null;
+  }
+}
+
+export async function updateDeviceManualPumpState(
+  userId: string,
+  deviceKey: string,
+  pumpType: 'water' | 'fertilizer',
+  isActive: boolean
+): Promise<void> {
+  if (!userId || !deviceKey) {
+    throw new Error("User ID and Device Key are required for updating pump state.");
+  }
+  if (!rtdb) {
+    throw new Error("Realtime Database is not initialized.");
+  }
+  try {
+    const pumpPathKey = pumpType === 'water' ? 'waterPumpActive' : 'fertilizerPumpActive';
+    const controlRef = ref(rtdb, `users/${userId}/devices/${deviceKey}/manualControl/${pumpPathKey}`);
+    await set(controlRef, isActive);
+  } catch (error) {
+    console.error(`Error updating manual ${pumpType} pump state for device ${deviceKey}:`, error);
+    throw error;
   }
 }

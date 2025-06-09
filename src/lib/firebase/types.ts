@@ -1,3 +1,4 @@
+
 // Firebase Data Structures
 
 // Path: /users/{userId}/settings
@@ -39,9 +40,13 @@ export interface FirebaseDevice {
   key?: string; // Firebase key, added after fetching
   isConnected?: boolean; // To be inferred or added to DB schema
   // Configuration specific to this device (if any, not in provided top-level JSON)
-  config?: { // Assuming these might be device-specific overrides eventually
+  config?: {
     pumpDurations?: { water: number; fertilizer: number };
     smsReceiver?: string;
+  };
+  manualControl?: {
+    waterPumpActive?: boolean;
+    fertilizerPumpActive?: boolean;
   };
 }
 

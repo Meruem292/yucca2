@@ -20,7 +20,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Save, AlertTriangle, Phone, Droplets, TestTube2, Zap, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { updateDeviceName, updateUserSettings } from "@/lib/firebase/rtdb"; // Assuming updateDeviceConfig is also available
+import { updateDeviceName, updateUserSettings, updateDeviceManualPumpState, updateDeviceConfig } from "@/lib/firebase/rtdb"; 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 const configureDeviceFormSchema = z.object({
@@ -34,21 +34,18 @@ type ConfigureDeviceFormValues = z.infer<typeof configureDeviceFormSchema>;
 
 interface ConfigureDeviceFormProps {
   device: FirebaseDevice;
-  // We might also pass current global settings if needed, or fetch them here
-  // globalSettings?: UserSettings | null; 
 }
 
 export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const deviceKey = device.key;
 
-  // Default values should come from the specific device's config if available,
-  // or fall back to some app-wide defaults or placeholders.
-  // For now, assuming device.config might exist or we use placeholders.
-  const defaultSmsReceiver = device.config?.smsReceiver || ''; // Placeholder from global settings if available
-  const defaultWaterPumpDuration = device.config?.pumpDurations?.water || 10; // Placeholder
-  const defaultFertilizerPumpDuration = device.config?.pumpDurations?.fertilizer || 5; // Placeholder
+
+  const defaultSmsReceiver = device.config?.smsReceiver || ''; 
+  const defaultWaterPumpDuration = device.config?.pumpDurations?.water || 10; 
+  const defaultFertilizerPumpDuration = device.config?.pumpDurations?.fertilizer || 5;
 
   const form = useForm<ConfigureDeviceFormValues>({
     resolver: zodResolver(configureDeviceFormSchema),
@@ -58,6 +55,8 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
       waterPumpDuration: defaultWaterPumpDuration,
       fertilizerPumpDuration: defaultFertilizerPumpDuration,
     },
+    // Watch for changes to re-evaluate button states or other dynamic elements if needed
+    // mode: "onChange" 
   });
   
   const mutation = useMutation({
@@ -70,52 +69,31 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
         updates.push(updateDeviceName(user.uid, device.key, values.deviceName));
       }
       
-      // For simplicity, SMS receiver and pump durations are currently part of global settings
-      // If they become device-specific, update logic here to save under device.config
-      // For now, let's assume we might want to update global user settings if they were edited here.
-      // This form is a bit ambiguous if it's for *device-specific* overrides or *global* settings.
-      // Assuming for now it sets overrides on the DEVICE, if device.config structure exists.
-      // If device.config structure is not defined, this part will do nothing or needs a global settings update.
-
-      const deviceConfigUpdates: Partial<FirebaseDevice['config']> = {};
+      const deviceConfigPayload: Partial<FirebaseDevice['config']> = {};
       let configChanged = false;
 
       if (values.smsReceiver !== (device.config?.smsReceiver || '')) {
-        deviceConfigUpdates.smsReceiver = values.smsReceiver;
+        deviceConfigPayload.smsReceiver = values.smsReceiver;
         configChanged = true;
       }
-      if (values.waterPumpDuration !== (device.config?.pumpDurations?.water || 0) ||
-          values.fertilizerPumpDuration !== (device.config?.pumpDurations?.fertilizer || 0)) {
-        deviceConfigUpdates.pumpDurations = {
+      if (values.waterPumpDuration !== (device.config?.pumpDurations?.water || defaultWaterPumpDuration) ||
+          values.fertilizerPumpDuration !== (device.config?.pumpDurations?.fertilizer || defaultFertilizerPumpDuration)) {
+        deviceConfigPayload.pumpDurations = {
           water: values.waterPumpDuration,
           fertilizer: values.fertilizerPumpDuration,
         };
         configChanged = true;
       }
 
-      if (configChanged && device.key) {
-        // This assumes a function like `updateDeviceConfig(userId, deviceKey, configUpdates)` exists
-        // For now, we'll try to update a subset of UserSettings which maps to some of these
-        // In a real scenario, you'd have a dedicated function `updateDeviceConfig`
-        // For now, we'll use updateUserSettings for smsReceiver if it differs from a potential global default
-        // And for pump durations, we'd ideally save them to device.config.
-        // This part is a bit of a placeholder for proper device-specific config updates.
-        // await updateUserSettings(user.uid, {
-        //   phoneNumber: values.smsReceiver, // Example: If SMS receiver is global
-        //   waterPumpDuration: values.waterPumpDuration, // Example: if these are global too
-        //   fertilizerPumpDuration: values.fertilizerPumpDuration
-        // });
-        // For a real app, you'd want to update device-specific config:
-        // await update(ref(db, `users/${user.uid}/devices/${device.key}/config`), deviceConfigUpdates);
-        // For demo, we'll just log it.
-        console.log("Simulated device config update:", deviceConfigUpdates);
+      if (configChanged) {
+        updates.push(updateDeviceConfig(user.uid, device.key, deviceConfigPayload));
       }
       
       await Promise.all(updates);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deviceDetails', user?.uid, device.key] });
-      queryClient.invalidateQueries({ queryKey: ['userDevices', user?.uid] }); // If name change affects list
+      queryClient.invalidateQueries({ queryKey: ['userDevices', user?.uid] }); 
       toast({
         title: "Configuration Saved",
         description: `Settings for "${form.getValues().deviceName}" have been updated.`,
@@ -136,20 +114,55 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
   }
 
   const handleManualPump = async (type: 'water' | 'fertilizer') => {
+    if (!user?.uid || !deviceKey) {
+      toast({
+        title: "Error",
+        description: "User or device information is missing to control pump.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const duration = type === 'water' ? form.getValues("waterPumpDuration") : form.getValues("fertilizerPumpDuration");
-    toast({
-      title: `Manual ${type} Pump Activated`,
-      description: `Pumping for ${duration} seconds. (Simulated)`,
-    });
+
+    // Attempt to activate pump
+    try {
+      await updateDeviceManualPumpState(user.uid, deviceKey, type, true);
+      toast({
+        title: `Manual ${type} Pump Activated`,
+        description: `Pumping for ${duration} seconds. State: ON in Firebase.`,
+      });
+    } catch (activationError) {
+      toast({
+        title: `Activation Failed`,
+        description: `Could not activate ${type} pump in Firebase. ${(activationError as Error).message}`,
+        variant: "destructive",
+      });
+      return; // Stop if activation failed
+    }
+
+    // Wait for the duration
     await new Promise(resolve => setTimeout(resolve, duration * 1000));
-     toast({
-      title: `Manual ${type} Pump Finished`,
-      description: `Pumping complete. (Simulated)`,
-      variant: 'default'
-    });
+
+    // Attempt to deactivate pump
+    try {
+      await updateDeviceManualPumpState(user.uid, deviceKey, type, false);
+      toast({
+        title: `Manual ${type} Pump Finished`,
+        description: `Pumping complete. State: OFF in Firebase.`,
+        variant: 'default'
+      });
+    } catch (deactivationError) {
+      toast({
+        title: `Deactivation Failed`,
+        description: `Could not deactivate ${type} pump in Firebase. ${(deactivationError as Error).message}`,
+        variant: "destructive",
+      });
+      console.error(`CRITICAL: Failed to set ${type} pump state to OFF for device ${deviceKey} after duration.`);
+    }
   };
   
-  if (!device) return null; // Should not happen if page logic is correct
+  if (!device) return null;
 
   return (
     <Card className="shadow-xl">
@@ -241,7 +254,7 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
               variant="outline" 
               className="flex-1 border-accent text-accent hover:bg-accent hover:text-accent-foreground"
               onClick={() => handleManualPump('water')}
-              disabled={mutation.isPending}
+              disabled={mutation.isPending} // You might want more specific disabling logic if one pump is active
             >
               <Droplets className="mr-2 h-4 w-4"/>
               Activate Water Pump ({form.watch("waterPumpDuration")}s)
@@ -250,7 +263,7 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
               variant="outline" 
               className="flex-1 border-accent text-accent hover:bg-accent hover:text-accent-foreground"
               onClick={() => handleManualPump('fertilizer')}
-              disabled={mutation.isPending}
+              disabled={mutation.isPending} // You might want more specific disabling logic if one pump is active
             >
               <TestTube2 className="mr-2 h-4 w-4"/>
               Activate Fertilizer Pump ({form.watch("fertilizerPumpDuration")}s)
