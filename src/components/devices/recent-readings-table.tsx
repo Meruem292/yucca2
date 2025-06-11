@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/table";
 import { getLucideIcon } from '@/lib/constants';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { format } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 
 interface RecentReadingsTableProps {
   deviceHistory: DeviceHistoryEntry[];
@@ -21,6 +21,7 @@ interface RecentReadingsTableProps {
 }
 
 const ClockIcon = getLucideIcon('Clock');
+const TIMEZONE = 'Asia/Manila';
 
 export function RecentReadingsTable({ deviceHistory, deviceId }: RecentReadingsTableProps) {
   // Get the last 6 entries, assuming history is sorted newest to oldest by Firebase key (timestamp)
@@ -62,7 +63,7 @@ export function RecentReadingsTable({ deviceHistory, deviceId }: RecentReadingsT
                 {recentReadings.map((reading) => (
                   <TableRow key={reading.timestamp}>
                     <TableCell className="font-medium text-xs">
-                      {format(new Date(reading.timestamp), "MMM d, h:mm:ss a")}
+                      {formatInTimeZone(new Date(reading.timestamp), TIMEZONE, "MMM d, h:mm:ss a")}
                     </TableCell>
                     <TableCell className="text-center">{formatValue(reading.soilMoisture, '%')}</TableCell>
                     <TableCell className="text-center">{formatValue(reading.soilTemperature, '°C')}</TableCell>

@@ -11,7 +11,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts";
-import { format } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 
 interface SensorHistoryDataPoint {
   date: string; // Formatted for chart
@@ -24,6 +24,8 @@ interface SensorHistoryChartProps {
   title: string;
   iconName: keyof typeof SENSOR_ICON_NAMES;
 }
+
+const TIMEZONE = 'Asia/Manila';
 
 export function SensorHistoryChart({ fullHistoryData, dataKeyToPlot, unit, title, iconName }: SensorHistoryChartProps) {
   const SensorIcon = getLucideIcon(iconName);
@@ -93,7 +95,7 @@ export function SensorHistoryChart({ fullHistoryData, dataKeyToPlot, unit, title
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
-                tickFormatter={(value) => format(new Date(value), "MMM d, h:mm a")}
+                tickFormatter={(value) => formatInTimeZone(new Date(value), TIMEZONE, "MMM d, h:mm a")}
                 minTickGap={30}
               />
               <YAxis
@@ -108,7 +110,7 @@ export function SensorHistoryChart({ fullHistoryData, dataKeyToPlot, unit, title
                 cursor={false}
                 content={<ChartTooltipContent indicator="line" labelFormatter={(value, payload) => {
                    if (payload && payload.length > 0 && payload[0].payload.date) {
-                     return format(new Date(payload[0].payload.date), "eeee, MMMM d, yyyy h:mm a");
+                     return formatInTimeZone(new Date(payload[0].payload.date), TIMEZONE, "eeee, MMMM d, yyyy h:mm a");
                    }
                    return "";
                 }}/>}

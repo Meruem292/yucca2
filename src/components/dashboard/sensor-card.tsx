@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import { getLucideIcon, SENSOR_ICON_NAMES } from '@/lib/constants'; 
+import { formatInTimeZone } from 'date-fns-tz';
 
 interface SensorCardProps {
   sensorId: SensorType; // e.g., 'soil_moisture', 'air_temperature'
@@ -18,6 +19,8 @@ interface SensorCardProps {
   deviceId: string; // Firebase key of the device
 }
 
+const TIMEZONE = 'Asia/Manila';
+
 export function SensorCard({ sensorId, name, value, unit, iconName, lastUpdated, deviceId }: SensorCardProps) {
   const IconComponent = getLucideIcon(iconName);
 
@@ -27,6 +30,9 @@ export function SensorCard({ sensorId, name, value, unit, iconName, lastUpdated,
   // The history page uses 'temperature' as a combined view for soil & air temp.
   const historySensorType = sensorId === 'soil_temperature' || sensorId === 'air_temperature' ? 'temperature' : sensorId;
 
+  const formattedLastUpdated = lastUpdated 
+    ? formatInTimeZone(new Date(lastUpdated), TIMEZONE, 'h:mm a') 
+    : 'N/A';
 
   return (
     <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
@@ -41,7 +47,7 @@ export function SensorCard({ sensorId, name, value, unit, iconName, lastUpdated,
         </div>
         {lastUpdated && (
             <p className="text-xs text-muted-foreground">
-            Last updated: {lastUpdated}
+            Last updated: {formattedLastUpdated}
             </p>
         )}
         {canViewHistory && (

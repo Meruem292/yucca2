@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/chart";
 import { LineChart, Line, CartesianGrid, XAxis, YAxis, ResponsiveContainer, TooltipProps } from "recharts";
 import type { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
-import { format } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 
 interface TemperatureHistoryDataPoint {
   date: string; // ISO string or formatted for chart
@@ -29,6 +29,7 @@ interface TemperatureHistoryChartProps {
 }
 
 const ChartIcon = getLucideIcon('BarChart3');
+const TIMEZONE = 'Asia/Manila';
 
 export function TemperatureHistoryChart({ fullHistoryData, title, deviceId }: TemperatureHistoryChartProps) {
   const chartData: TemperatureHistoryDataPoint[] = fullHistoryData
@@ -72,7 +73,7 @@ export function TemperatureHistoryChart({ fullHistoryData, title, deviceId }: Te
   const CustomTooltip = ({ active, payload, label }: TooltipProps<ValueType, NameType>) => {
     if (active && payload && payload.length) {
       const date = new Date(label);
-      const formattedDate = format(date, "MMM d, h:mm a");
+      const formattedDate = formatInTimeZone(date, TIMEZONE, "MMM d, h:mm a");
       return (
         <div className="rounded-lg border bg-background p-2.5 shadow-sm">
           <p className="text-sm font-medium text-foreground mb-1.5">{formattedDate}</p>
@@ -109,7 +110,7 @@ export function TemperatureHistoryChart({ fullHistoryData, title, deviceId }: Te
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
-                tickFormatter={(value) => format(new Date(value), "MMM d, h:mm a")}
+                tickFormatter={(value) => formatInTimeZone(new Date(value), TIMEZONE, "MMM d, h:mm a")}
                 minTickGap={30} 
               />
               <YAxis
