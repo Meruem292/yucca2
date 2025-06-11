@@ -35,6 +35,7 @@ export interface FirebaseDevice {
   lastUpdated: string; // ISO string timestamp
   location: string;
   name: string;
+  smsReceiver?: string; // Moved to top level
   readings: DeviceSensorReadings;
   useDefaultSettings: boolean;
   key?: string; // Firebase key, added after fetching
@@ -42,8 +43,7 @@ export interface FirebaseDevice {
   // Configuration specific to this device
   config?: {
     pumpDurations?: { water: number; fertilizer: number };
-    smsReceiver?: string;
-    // autoWatering removed as per user request
+    // smsReceiver removed from here
   };
   manualControl?: {
     waterPumpActive?: boolean;

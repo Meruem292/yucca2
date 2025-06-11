@@ -16,21 +16,20 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-// Checkbox no longer needed if autoWatering is removed, but might be used by other forms.
-// import { Checkbox } from "@/components/ui/checkbox"; 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Save, AlertTriangle, Phone, Droplets, TestTube2, Zap, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { updateDeviceManualPumpState, updateDeviceConfig } from "@/lib/firebase/rtdb"; 
+import { updateDeviceManualPumpState, updateDeviceConfig, updateDeviceProperties } from "@/lib/firebase/rtdb"; 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+// Schema now reflects smsReceiver as a top-level property conceptually,
+// but validation remains the same. Device name is also top-level.
 const configureDeviceFormSchema = z.object({
   deviceName: z.string().min(3, { message: "Device name must be at least 3 characters." }),
   smsReceiver: z.string().regex(/^\+[1-9]\d{1,14}$/, { message: "Invalid phone number format (e.g., +15551234567)." }).or(z.literal("")),
   waterPumpDuration: z.coerce.number().min(1, {message: "Duration must be at least 1 second."}).max(600, {message: "Max 600 seconds."}),
   fertilizerPumpDuration: z.coerce.number().min(1, {message: "Duration must be at least 1 second."}).max(300, {message: "Max 300 seconds."}),
-  // autoWatering fields removed
 });
 
 type ConfigureDeviceFormValues = z.infer<typeof configureDeviceFormSchema>;
@@ -45,11 +44,9 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
   const queryClient = useQueryClient();
   const deviceKey = device.key;
 
-  const defaultSmsReceiver = device.config?.smsReceiver || ''; 
+  const defaultSmsReceiver = device.smsReceiver || ''; // Reads from top-level device.smsReceiver
   const defaultWaterPumpDuration = device.config?.pumpDurations?.water || 10; 
   const defaultFertilizerPumpDuration = device.config?.pumpDurations?.fertilizer || 5;
-  // autoWatering defaults removed
-
 
   const form = useForm<ConfigureDeviceFormValues>({
     resolver: zodResolver(configureDeviceFormSchema),
@@ -58,7 +55,6 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
       smsReceiver: defaultSmsReceiver,
       waterPumpDuration: defaultWaterPumpDuration,
       fertilizerPumpDuration: defaultFertilizerPumpDuration,
-      // autoWatering defaults removed
     },
   });
   
@@ -66,22 +62,32 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
     mutationFn: async (values: ConfigureDeviceFormValues) => {
       if (!user?.uid || !device.key) throw new Error("User or device key is missing.");
       
-      // We only update the device name directly on the device object.
-      // All other settings go into the `config` node.
+      const updates: Partial<Pick<FirebaseDevice, 'name' | 'smsReceiver'>> = {};
       if (values.deviceName !== device.name) {
-         await updateUserData(user.uid, `devices/${device.key}`, { name: values.deviceName });
+        updates.name = values.deviceName;
+      }
+      if (values.smsReceiver !== (device.smsReceiver || '')) {
+        updates.smsReceiver = values.smsReceiver;
+      }
+
+      if (Object.keys(updates).length > 0) {
+        await updateDeviceProperties(user.uid, device.key, updates);
       }
       
-      const deviceConfigPayload: Partial<FirebaseDevice['config']> = {
+      // Pump durations are still part of the 'config' object
+      const deviceConfigPayload: Partial<Pick<FirebaseDevice, 'config'>['config']> = {
         pumpDurations: {
           water: values.waterPumpDuration,
           fertilizer: values.fertilizerPumpDuration,
         },
-        smsReceiver: values.smsReceiver,
-        // autoWatering config removed
       };
       
-      await updateDeviceConfig(user.uid, device.key, deviceConfigPayload);
+      // Check if pump durations actually changed to avoid unnecessary update
+      const currentPumpDurations = device.config?.pumpDurations;
+      if (values.waterPumpDuration !== (currentPumpDurations?.water || 10) || 
+          values.fertilizerPumpDuration !== (currentPumpDurations?.fertilizer || 5)) {
+        await updateDeviceConfig(user.uid, device.key, deviceConfigPayload);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deviceDetails', user?.uid, device.key] });
@@ -100,12 +106,8 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
     }
   });
 
-  // Helper function for updating user data - replace with actual call if different from updateDeviceConfig
-  async function updateUserData(userId: string, path: string, data: object): Promise<void> {
-    if (!rtdb) throw new Error("RTDB not initialized");
-    const dataRef = ref(rtdb, `users/${userId}/${path}`);
-    await update(dataRef, data);
-  }
+  // This local helper is no longer needed as we use updateDeviceProperties and updateDeviceConfig
+  // async function updateUserData(userId: string, path: string, data: object): Promise<void> { ... }
 
 
   async function onSubmit(values: ConfigureDeviceFormValues) {
@@ -139,6 +141,9 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
       return; 
     }
 
+    // Wait for the duration
+    // Note: This blocks the UI thread for the duration. For longer durations, consider background tasks or server-side logic.
+    // For typical pump durations (few seconds), this might be acceptable.
     await new Promise(resolve => setTimeout(resolve, duration * 1000));
 
     try {
@@ -154,6 +159,7 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
         description: `Could not deactivate ${type} pump in Firebase. ${(deactivationError as Error).message}`,
         variant: "destructive",
       });
+      // Log critical error if deactivation fails, as the pump might stay on.
       console.error(`CRITICAL: Failed to set ${type} pump state to OFF for device ${deviceKey} after duration.`);
     }
   };
@@ -233,8 +239,6 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
               />
             </div>
 
-            {/* Auto Watering UI Removed */}
-
             <Button type="submit" className="w-full md:w-auto" disabled={mutation.isPending || form.formState.isSubmitting}>
               {mutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4"/>}
               {mutation.isPending ? "Saving..." : "Save Configuration"}
@@ -277,4 +281,6 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
 }
 // Added missing import for rtdb and update from firebase/database in ConfigureDeviceForm
 import { rtdb } from '@/lib/firebase/config';
+// update function is not directly used here anymore, but ref might be used by other parts of the file if not cleaned up.
+// For now, keeping it, but it's not strictly necessary for the current changes.
 import { ref, update } from 'firebase/database';

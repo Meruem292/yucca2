@@ -101,11 +101,14 @@ export const updateUserSettings = (userId: string, settings: Partial<UserSetting
   return updateUserData(userId, 'settings', validSettings);
 }
 
-export const updateDeviceName = (userId: string, deviceKey: string, name: string): Promise<void> =>
-  updateUserData(userId, `devices/${deviceKey}`, { name });
+// Updates top-level device properties like name or smsReceiver
+export const updateDeviceProperties = (userId: string, deviceKey: string, properties: Partial<Pick<FirebaseDevice, 'name' | 'smsReceiver'>>): Promise<void> => {
+    return updateUserData(userId, `devices/${deviceKey}`, properties);
+}
 
 
-export async function updateDeviceConfig(userId: string, deviceKey: string, config: Partial<FirebaseDevice['config']>) {
+// Updates nested device configuration properties (e.g., pumpDurations)
+export async function updateDeviceConfig(userId: string, deviceKey: string, config: Partial<Pick<FirebaseDevice, 'config'>['config']>) {
    if (!userId || !deviceKey) {
     throw new Error("User ID and Device Key are required.");
   }
@@ -113,18 +116,13 @@ export async function updateDeviceConfig(userId: string, deviceKey: string, conf
     throw new Error("Realtime Database is not initialized.");
   }
   // Filter out undefined values from config
-  const validConfig: Partial<FirebaseDevice['config']> = {};
-  if (config.pumpDurations) {
+  const validConfig: Partial<Pick<FirebaseDevice, 'config'>['config']> = {};
+  if (config?.pumpDurations) {
     validConfig.pumpDurations = config.pumpDurations;
   }
-  if (config.smsReceiver !== undefined) { 
-    validConfig.smsReceiver = config.smsReceiver;
-  }
-  // autoWatering config removed
-
+  // smsReceiver is no longer handled here
 
   if (Object.keys(validConfig).length > 0) {
-    // Construct the path to update only the config node
     return updateUserData(userId, `devices/${deviceKey}/config`, validConfig);
   }
   return Promise.resolve(); // No changes to update
@@ -159,20 +157,20 @@ export async function registerNewDevice(userId: string, deviceName: string, uniq
       waterLevel: 50,
     };
     
-    const defaultConfig: FirebaseDevice['config'] = {
+    const defaultConfigContents: FirebaseDevice['config'] = {
       pumpDurations: { water: 10, fertilizer: 5 },
-      smsReceiver: "",
-      // autoWatering config removed
+      // smsReceiver removed from here
     };
 
     const newDeviceData: Omit<FirebaseDevice, 'key' | 'isConnected'> = { 
       id: uniqueIdFormat,
       name: deviceName,
       location: location || "Default Location",
+      smsReceiver: "", // Initialize top-level smsReceiver
       lastUpdated: now,
       readings: defaultReadings,
       useDefaultSettings: useDefaultSettings,
-      config: useDefaultSettings ? defaultConfig : {},
+      config: useDefaultSettings ? defaultConfigContents : {},
       manualControl: { 
         waterPumpActive: false,
         fertilizerPumpActive: false,
