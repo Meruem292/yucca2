@@ -120,12 +120,7 @@ export async function updateDeviceConfig(userId: string, deviceKey: string, conf
   if (config.smsReceiver !== undefined) { 
     validConfig.smsReceiver = config.smsReceiver;
   }
-  if (config.autoWatering) {
-     validConfig.autoWatering = {
-        enabled: config.autoWatering.enabled !== undefined ? config.autoWatering.enabled : true, // Default to true if not specified during an update
-        soilMoistureThreshold: config.autoWatering.soilMoistureThreshold !== undefined ? config.autoWatering.soilMoistureThreshold : 50 // Default threshold
-     };
-  }
+  // autoWatering config removed
 
 
   if (Object.keys(validConfig).length > 0) {
@@ -167,10 +162,7 @@ export async function registerNewDevice(userId: string, deviceName: string, uniq
     const defaultConfig: FirebaseDevice['config'] = {
       pumpDurations: { water: 10, fertilizer: 5 },
       smsReceiver: "",
-      autoWatering: {
-        enabled: true,
-        soilMoistureThreshold: 50, // Assuming threshold is a percentage 0-100
-      }
+      // autoWatering config removed
     };
 
     const newDeviceData: Omit<FirebaseDevice, 'key' | 'isConnected'> = { 

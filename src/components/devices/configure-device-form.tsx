@@ -16,10 +16,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
+// Checkbox no longer needed if autoWatering is removed, but might be used by other forms.
+// import { Checkbox } from "@/components/ui/checkbox"; 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Save, AlertTriangle, Phone, Droplets, TestTube2, Zap, Loader2, Power, Thermometer } from "lucide-react";
+import { Save, AlertTriangle, Phone, Droplets, TestTube2, Zap, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { updateDeviceManualPumpState, updateDeviceConfig } from "@/lib/firebase/rtdb"; 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -29,8 +30,7 @@ const configureDeviceFormSchema = z.object({
   smsReceiver: z.string().regex(/^\+[1-9]\d{1,14}$/, { message: "Invalid phone number format (e.g., +15551234567)." }).or(z.literal("")),
   waterPumpDuration: z.coerce.number().min(1, {message: "Duration must be at least 1 second."}).max(600, {message: "Max 600 seconds."}),
   fertilizerPumpDuration: z.coerce.number().min(1, {message: "Duration must be at least 1 second."}).max(300, {message: "Max 300 seconds."}),
-  autoWateringEnabled: z.boolean().default(true),
-  autoWateringSoilMoistureThreshold: z.coerce.number().min(0, {message: "Threshold must be 0 or greater."}).max(100, {message: "Threshold cannot exceed 100 (if percentage)."}), // Assuming % for now
+  // autoWatering fields removed
 });
 
 type ConfigureDeviceFormValues = z.infer<typeof configureDeviceFormSchema>;
@@ -48,8 +48,7 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
   const defaultSmsReceiver = device.config?.smsReceiver || ''; 
   const defaultWaterPumpDuration = device.config?.pumpDurations?.water || 10; 
   const defaultFertilizerPumpDuration = device.config?.pumpDurations?.fertilizer || 5;
-  const defaultAutoWateringEnabled = device.config?.autoWatering?.enabled !== undefined ? device.config.autoWatering.enabled : true;
-  const defaultAutoWateringThreshold = device.config?.autoWatering?.soilMoistureThreshold !== undefined ? device.config.autoWatering.soilMoistureThreshold : 50;
+  // autoWatering defaults removed
 
 
   const form = useForm<ConfigureDeviceFormValues>({
@@ -59,8 +58,7 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
       smsReceiver: defaultSmsReceiver,
       waterPumpDuration: defaultWaterPumpDuration,
       fertilizerPumpDuration: defaultFertilizerPumpDuration,
-      autoWateringEnabled: defaultAutoWateringEnabled,
-      autoWateringSoilMoistureThreshold: defaultAutoWateringThreshold,
+      // autoWatering defaults removed
     },
   });
   
@@ -80,10 +78,7 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
           fertilizer: values.fertilizerPumpDuration,
         },
         smsReceiver: values.smsReceiver,
-        autoWatering: {
-          enabled: values.autoWateringEnabled,
-          soilMoistureThreshold: values.autoWateringSoilMoistureThreshold,
-        }
+        // autoWatering config removed
       };
       
       await updateDeviceConfig(user.uid, device.key, deviceConfigPayload);
@@ -238,49 +233,7 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
               />
             </div>
 
-            <CardTitle className="text-lg font-medium pt-4 border-t mt-6">Auto Watering (Device Specific)</CardTitle>
-            <FormField
-              control={form.control}
-              name="autoWateringEnabled"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-muted/20">
-                  <div className="space-y-0.5">
-                    <FormLabel className="flex items-center text-base">
-                      <Power className="mr-2 h-4 w-4 text-muted-foreground"/> Enable Auto Watering
-                    </FormLabel>
-                    <FormDescription>
-                      Allow device to automatically water based on soil moisture.
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                      disabled={mutation.isPending}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-             <FormField
-              control={form.control}
-              name="autoWateringSoilMoistureThreshold"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center">
-                    <Thermometer className="mr-2 h-4 w-4 text-orange-500"/> Soil Moisture Threshold for Auto Watering
-                  </FormLabel>
-                  <FormControl>
-                    <Input type="number" {...field} disabled={mutation.isPending || !form.watch("autoWateringEnabled")} placeholder="e.g., 30 (for 30%)"/>
-                  </FormControl>
-                  <FormDescription>
-                    Device will water if soil moisture drops below this value (0-100%). Only active if auto watering is enabled.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
+            {/* Auto Watering UI Removed */}
 
             <Button type="submit" className="w-full md:w-auto" disabled={mutation.isPending || form.formState.isSubmitting}>
               {mutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4"/>}
@@ -325,4 +278,3 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
 // Added missing import for rtdb and update from firebase/database in ConfigureDeviceForm
 import { rtdb } from '@/lib/firebase/config';
 import { ref, update } from 'firebase/database';
-

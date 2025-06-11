@@ -43,10 +43,7 @@ export interface FirebaseDevice {
   config?: {
     pumpDurations?: { water: number; fertilizer: number };
     smsReceiver?: string;
-    autoWatering?: {
-      enabled?: boolean;
-      soilMoistureThreshold?: number; // The value Arduino considers "dry"
-    };
+    // autoWatering removed as per user request
   };
   manualControl?: {
     waterPumpActive?: boolean;
