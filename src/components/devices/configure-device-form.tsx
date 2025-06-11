@@ -18,7 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Save, AlertTriangle, Phone, Droplets, TestTube2, Zap, Loader2 } from "lucide-react";
+import { Save, AlertTriangle, Phone, Droplets, TestTube2, Zap, Loader2, Ruler } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { updateDeviceManualPumpState, updateDeviceConfig, updateDeviceProperties } from "@/lib/firebase/rtdb"; 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -28,6 +28,8 @@ const configureDeviceFormSchema = z.object({
   smsReceiver: z.string().regex(/^\+[1-9]\d{1,14}$/, { message: "Invalid phone number format (e.g., +15551234567)." }).or(z.literal("")),
   waterPumpDuration: z.coerce.number().min(1, {message: "Duration must be at least 1 second."}).max(600, {message: "Max 600 seconds."}),
   fertilizerPumpDuration: z.coerce.number().min(1, {message: "Duration must be at least 1 second."}).max(300, {message: "Max 300 seconds."}),
+  waterContainerHeight: z.coerce.number().min(1, {message: "Height must be at least 1 cm."}).max(500, {message: "Max 500 cm."}),
+  fertilizerContainerHeight: z.coerce.number().min(1, {message: "Height must be at least 1 cm."}).max(500, {message: "Max 500 cm."}),
 });
 
 type ConfigureDeviceFormValues = z.infer<typeof configureDeviceFormSchema>;
@@ -45,6 +47,9 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
   const defaultSmsReceiver = device.smsReceiver || '';
   const defaultWaterPumpDuration = device.config?.pumpDurations?.water || 10; 
   const defaultFertilizerPumpDuration = device.config?.pumpDurations?.fertilizer || 5;
+  const defaultWaterContainerHeight = device.config?.containerHeights?.water || 30;
+  const defaultFertilizerContainerHeight = device.config?.containerHeights?.fertilizer || 20;
+
 
   const form = useForm<ConfigureDeviceFormValues>({
     resolver: zodResolver(configureDeviceFormSchema),
@@ -53,6 +58,8 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
       smsReceiver: defaultSmsReceiver,
       waterPumpDuration: defaultWaterPumpDuration,
       fertilizerPumpDuration: defaultFertilizerPumpDuration,
+      waterContainerHeight: defaultWaterContainerHeight,
+      fertilizerContainerHeight: defaultFertilizerContainerHeight,
     },
   });
   
@@ -60,18 +67,18 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
     mutationFn: async (values: ConfigureDeviceFormValues) => {
       if (!user?.uid || !device.key) throw new Error("User or device key is missing.");
       
-      const updates: Partial<Pick<FirebaseDevice, 'name' | 'smsReceiver'>> = {};
+      const devicePropertyUpdates: Partial<Pick<FirebaseDevice, 'name' | 'smsReceiver'>> = {};
       if (values.deviceName !== device.name) {
-        updates.name = values.deviceName;
+        devicePropertyUpdates.name = values.deviceName;
       }
-      // Ensure smsReceiver update considers empty string as a valid change from undefined/null
       const currentSmsReceiver = device.smsReceiver || '';
       if (values.smsReceiver !== currentSmsReceiver) {
-        updates.smsReceiver = values.smsReceiver;
+         // Allow setting to empty string if it was previously defined, or from empty to defined
+        devicePropertyUpdates.smsReceiver = values.smsReceiver;
       }
 
-      if (Object.keys(updates).length > 0) {
-        await updateDeviceProperties(user.uid, device.key, updates);
+      if (Object.keys(devicePropertyUpdates).length > 0) {
+        await updateDeviceProperties(user.uid, device.key, devicePropertyUpdates);
       }
       
       const deviceConfigPayload: Partial<Pick<FirebaseDevice, 'config'>['config']> = {
@@ -79,11 +86,13 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
           water: values.waterPumpDuration,
           fertilizer: values.fertilizerPumpDuration,
         },
+        containerHeights: {
+            water: values.waterContainerHeight,
+            fertilizer: values.fertilizerContainerHeight,
+        }
       };
       
-      // Always attempt to update pump durations if the form is submitted.
-      // The updateDeviceConfig function itself can be responsible for minimizing writes if necessary,
-      // but for simplicity and robustness, we ensure the call is made.
+      // Always attempt to update config (pump durations, container heights) if the form is submitted.
       await updateDeviceConfig(user.uid, device.key, deviceConfigPayload);
     },
     onSuccess: () => {
@@ -227,6 +236,43 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
                 )}
               />
             </div>
+
+            <CardTitle className="text-lg font-medium pt-4 border-t mt-6">Container Heights (Device Specific)</CardTitle>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="waterContainerHeight"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center">
+                      <Ruler className="mr-2 h-4 w-4 text-blue-500"/> Water Container Height (cm)
+                    </FormLabel>
+                    <FormControl>
+                      <Input type="number" {...field} disabled={mutation.isPending} />
+                    </FormControl>
+                    <FormDescription>Total height of the water container in centimeters.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="fertilizerContainerHeight"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center">
+                      <Ruler className="mr-2 h-4 w-4 text-green-500"/> Fertilizer Container Height (cm)
+                    </FormLabel>
+                    <FormControl>
+                      <Input type="number" {...field} disabled={mutation.isPending} />
+                    </FormControl>
+                    <FormDescription>Total height of the fertilizer container in centimeters.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
 
             <Button type="submit" className="w-full md:w-auto" disabled={mutation.isPending || form.formState.isSubmitting}>
               {mutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4"/>}

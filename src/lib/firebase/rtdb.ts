@@ -81,6 +81,7 @@ export async function getDeviceHistory(userId: string, deviceKey: string): Promi
 
   return Object.entries(historyObject)
     .map(([timestampKey, value]) => {
+      // Prioritize the explicit timestamp if available, otherwise parse the key
       const entryTimestamp = value.timestamp || new Date(parseInt(timestampKey)).toISOString();
       return {
         ...value,
@@ -107,7 +108,7 @@ export const updateDeviceProperties = (userId: string, deviceKey: string, proper
 }
 
 
-// Updates nested device configuration properties (e.g., pumpDurations)
+// Updates nested device configuration properties (e.g., pumpDurations, containerHeights)
 export async function updateDeviceConfig(userId: string, deviceKey: string, config: Partial<Pick<FirebaseDevice, 'config'>['config']>) {
    if (!userId || !deviceKey) {
     throw new Error("User ID and Device Key are required.");
@@ -115,12 +116,20 @@ export async function updateDeviceConfig(userId: string, deviceKey: string, conf
   if (!rtdb) {
     throw new Error("Realtime Database is not initialized.");
   }
-  // Filter out undefined values from config
+  // Filter out undefined values from config to avoid overwriting with undefined
   const validConfig: Partial<Pick<FirebaseDevice, 'config'>['config']> = {};
   if (config?.pumpDurations) {
-    validConfig.pumpDurations = config.pumpDurations;
+    validConfig.pumpDurations = {
+      water: config.pumpDurations.water,
+      fertilizer: config.pumpDurations.fertilizer,
+    };
   }
-  // smsReceiver is no longer handled here
+  if (config?.containerHeights) {
+    validConfig.containerHeights = {
+        water: config.containerHeights.water,
+        fertilizer: config.containerHeights.fertilizer,
+    };
+  }
 
   if (Object.keys(validConfig).length > 0) {
     return updateUserData(userId, `devices/${deviceKey}/config`, validConfig);
@@ -159,7 +168,7 @@ export async function registerNewDevice(userId: string, deviceName: string, uniq
     
     const defaultConfigContents: FirebaseDevice['config'] = {
       pumpDurations: { water: 10, fertilizer: 5 },
-      // smsReceiver removed from here
+      containerHeights: { water: 30, fertilizer: 20 }, // Default container heights in cm
     };
 
     const newDeviceData: Omit<FirebaseDevice, 'key' | 'isConnected'> = { 
@@ -170,7 +179,7 @@ export async function registerNewDevice(userId: string, deviceName: string, uniq
       lastUpdated: now,
       readings: defaultReadings,
       useDefaultSettings: useDefaultSettings,
-      config: useDefaultSettings ? defaultConfigContents : {},
+      config: useDefaultSettings ? defaultConfigContents : { pumpDurations: { water: 10, fertilizer: 5 }, containerHeights: { water: 0, fertilizer: 0} },
       manualControl: { 
         waterPumpActive: false,
         fertilizerPumpActive: false,
