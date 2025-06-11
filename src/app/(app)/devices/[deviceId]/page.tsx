@@ -102,7 +102,7 @@ export default function DeviceDetailPage() {
         value: value !== undefined && value !== null ? value : 'N/A',
         unit: getUnitForSensor(key),
         iconName: SENSOR_ICON_NAMES[legacySensorType] || 'PackageSearch', // Fallback icon
-        lastUpdated: device.lastUpdated ? new Date(device.lastUpdated).toLocaleTimeString() : 'N/A',
+        lastUpdated: device.lastUpdated, // Pass the original ISO string
       };
     }) : [];
 
@@ -169,3 +169,4 @@ export default function DeviceDetailPage() {
 }
 
 // generateStaticParams is removed as this page is now dynamic based on Firebase data
+    
