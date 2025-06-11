@@ -23,8 +23,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { updateDeviceManualPumpState, updateDeviceConfig, updateDeviceProperties } from "@/lib/firebase/rtdb"; 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-// Schema now reflects smsReceiver as a top-level property conceptually,
-// but validation remains the same. Device name is also top-level.
 const configureDeviceFormSchema = z.object({
   deviceName: z.string().min(3, { message: "Device name must be at least 3 characters." }),
   smsReceiver: z.string().regex(/^\+[1-9]\d{1,14}$/, { message: "Invalid phone number format (e.g., +15551234567)." }).or(z.literal("")),
@@ -44,7 +42,7 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
   const queryClient = useQueryClient();
   const deviceKey = device.key;
 
-  const defaultSmsReceiver = device.smsReceiver || ''; // Reads from top-level device.smsReceiver
+  const defaultSmsReceiver = device.smsReceiver || '';
   const defaultWaterPumpDuration = device.config?.pumpDurations?.water || 10; 
   const defaultFertilizerPumpDuration = device.config?.pumpDurations?.fertilizer || 5;
 
@@ -66,7 +64,9 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
       if (values.deviceName !== device.name) {
         updates.name = values.deviceName;
       }
-      if (values.smsReceiver !== (device.smsReceiver || '')) {
+      // Ensure smsReceiver update considers empty string as a valid change from undefined/null
+      const currentSmsReceiver = device.smsReceiver || '';
+      if (values.smsReceiver !== currentSmsReceiver) {
         updates.smsReceiver = values.smsReceiver;
       }
 
@@ -74,7 +74,6 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
         await updateDeviceProperties(user.uid, device.key, updates);
       }
       
-      // Pump durations are still part of the 'config' object
       const deviceConfigPayload: Partial<Pick<FirebaseDevice, 'config'>['config']> = {
         pumpDurations: {
           water: values.waterPumpDuration,
@@ -82,12 +81,10 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
         },
       };
       
-      // Check if pump durations actually changed to avoid unnecessary update
-      const currentPumpDurations = device.config?.pumpDurations;
-      if (values.waterPumpDuration !== (currentPumpDurations?.water || 10) || 
-          values.fertilizerPumpDuration !== (currentPumpDurations?.fertilizer || 5)) {
-        await updateDeviceConfig(user.uid, device.key, deviceConfigPayload);
-      }
+      // Always attempt to update pump durations if the form is submitted.
+      // The updateDeviceConfig function itself can be responsible for minimizing writes if necessary,
+      // but for simplicity and robustness, we ensure the call is made.
+      await updateDeviceConfig(user.uid, device.key, deviceConfigPayload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deviceDetails', user?.uid, device.key] });
@@ -105,10 +102,6 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
       });
     }
   });
-
-  // This local helper is no longer needed as we use updateDeviceProperties and updateDeviceConfig
-  // async function updateUserData(userId: string, path: string, data: object): Promise<void> { ... }
-
 
   async function onSubmit(values: ConfigureDeviceFormValues) {
     mutation.mutate(values);
@@ -141,9 +134,6 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
       return; 
     }
 
-    // Wait for the duration
-    // Note: This blocks the UI thread for the duration. For longer durations, consider background tasks or server-side logic.
-    // For typical pump durations (few seconds), this might be acceptable.
     await new Promise(resolve => setTimeout(resolve, duration * 1000));
 
     try {
@@ -159,7 +149,6 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
         description: `Could not deactivate ${type} pump in Firebase. ${(deactivationError as Error).message}`,
         variant: "destructive",
       });
-      // Log critical error if deactivation fails, as the pump might stay on.
       console.error(`CRITICAL: Failed to set ${type} pump state to OFF for device ${deviceKey} after duration.`);
     }
   };
@@ -284,3 +273,4 @@ import { rtdb } from '@/lib/firebase/config';
 // update function is not directly used here anymore, but ref might be used by other parts of the file if not cleaned up.
 // For now, keeping it, but it's not strictly necessary for the current changes.
 import { ref, update } from 'firebase/database';
+
