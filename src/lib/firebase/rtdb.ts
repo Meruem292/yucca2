@@ -79,14 +79,8 @@ export async function getDeviceHistory(userId: string, deviceKey: string): Promi
   const historyObject = await getUserData<Record<string, Omit<DeviceHistoryEntry, 'timestamp'>>>(userId, `deviceHistory/${deviceKey}`);
   if (!historyObject) return [];
 
-  // The keys in deviceHistory are timestamps (Firebase server timestamps which are numbers)
-  // We need to convert them back to ISO strings for consistency if needed, or use them as is.
-  // The current `DeviceHistoryEntry` expects `timestamp` as an ISO string.
-  // The sample data has `timestamp` also as an ISO string *within* the object, and uses numeric keys.
-  // Let's assume the numeric keys are the primary timestamp.
   return Object.entries(historyObject)
     .map(([timestampKey, value]) => {
-      // If value already contains a timestamp, use it. Otherwise, use the key.
       const entryTimestamp = value.timestamp || new Date(parseInt(timestampKey)).toISOString();
       return {
         ...value,
@@ -110,8 +104,7 @@ export const updateUserSettings = (userId: string, settings: Partial<UserSetting
 export const updateDeviceName = (userId: string, deviceKey: string, name: string): Promise<void> =>
   updateUserData(userId, `devices/${deviceKey}`, { name });
 
-// Placeholder for updating device-specific config like pump durations or SMS receiver
-// This would be similar to updateUserSettings but target `devices/${deviceKey}/config`
+
 export async function updateDeviceConfig(userId: string, deviceKey: string, config: Partial<FirebaseDevice['config']>) {
    if (!userId || !deviceKey) {
     throw new Error("User ID and Device Key are required.");
@@ -124,11 +117,19 @@ export async function updateDeviceConfig(userId: string, deviceKey: string, conf
   if (config.pumpDurations) {
     validConfig.pumpDurations = config.pumpDurations;
   }
-  if (config.smsReceiver !== undefined) { // Check for undefined, empty string is valid
+  if (config.smsReceiver !== undefined) { 
     validConfig.smsReceiver = config.smsReceiver;
   }
+  if (config.autoWatering) {
+     validConfig.autoWatering = {
+        enabled: config.autoWatering.enabled !== undefined ? config.autoWatering.enabled : true, // Default to true if not specified during an update
+        soilMoistureThreshold: config.autoWatering.soilMoistureThreshold !== undefined ? config.autoWatering.soilMoistureThreshold : 50 // Default threshold
+     };
+  }
+
 
   if (Object.keys(validConfig).length > 0) {
+    // Construct the path to update only the config node
     return updateUserData(userId, `devices/${deviceKey}/config`, validConfig);
   }
   return Promise.resolve(); // No changes to update
@@ -163,21 +164,24 @@ export async function registerNewDevice(userId: string, deviceName: string, uniq
       waterLevel: 50,
     };
     
-    const defaultPumpDurations = { water: 10, fertilizer: 5 }; // Example defaults
-    const defaultSmsReceiver = ""; // Example default
+    const defaultConfig: FirebaseDevice['config'] = {
+      pumpDurations: { water: 10, fertilizer: 5 },
+      smsReceiver: "",
+      autoWatering: {
+        enabled: true,
+        soilMoistureThreshold: 50, // Assuming threshold is a percentage 0-100
+      }
+    };
 
-    const newDeviceData: Omit<FirebaseDevice, 'key' | 'isConnected'> = { // Key and isConnected are not stored directly in the object value
+    const newDeviceData: Omit<FirebaseDevice, 'key' | 'isConnected'> = { 
       id: uniqueIdFormat,
       name: deviceName,
       location: location || "Default Location",
       lastUpdated: now,
       readings: defaultReadings,
       useDefaultSettings: useDefaultSettings,
-      config: useDefaultSettings ? {
-        pumpDurations: defaultPumpDurations,
-        smsReceiver: defaultSmsReceiver,
-      } : {},
-      manualControl: { // Initialize manual control states
+      config: useDefaultSettings ? defaultConfig : {},
+      manualControl: { 
         waterPumpActive: false,
         fertilizerPumpActive: false,
       }

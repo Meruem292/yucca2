@@ -16,18 +16,21 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Save, AlertTriangle, Phone, Droplets, TestTube2, Zap, Loader2 } from "lucide-react";
+import { Save, AlertTriangle, Phone, Droplets, TestTube2, Zap, Loader2, Power, Thermometer } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { updateDeviceName, updateUserSettings, updateDeviceManualPumpState, updateDeviceConfig } from "@/lib/firebase/rtdb"; 
+import { updateDeviceManualPumpState, updateDeviceConfig } from "@/lib/firebase/rtdb"; 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 const configureDeviceFormSchema = z.object({
   deviceName: z.string().min(3, { message: "Device name must be at least 3 characters." }),
   smsReceiver: z.string().regex(/^\+[1-9]\d{1,14}$/, { message: "Invalid phone number format (e.g., +15551234567)." }).or(z.literal("")),
-  waterPumpDuration: z.coerce.number().min(1, {message: "Duration must be at least 1 second."}).max(600, {message: "Max 600 seconds."}), // Increased max
-  fertilizerPumpDuration: z.coerce.number().min(1, {message: "Duration must be at least 1 second."}).max(300, {message: "Max 300 seconds."}), // Increased max
+  waterPumpDuration: z.coerce.number().min(1, {message: "Duration must be at least 1 second."}).max(600, {message: "Max 600 seconds."}),
+  fertilizerPumpDuration: z.coerce.number().min(1, {message: "Duration must be at least 1 second."}).max(300, {message: "Max 300 seconds."}),
+  autoWateringEnabled: z.boolean().default(true),
+  autoWateringSoilMoistureThreshold: z.coerce.number().min(0, {message: "Threshold must be 0 or greater."}).max(100, {message: "Threshold cannot exceed 100 (if percentage)."}), // Assuming % for now
 });
 
 type ConfigureDeviceFormValues = z.infer<typeof configureDeviceFormSchema>;
@@ -42,10 +45,12 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
   const queryClient = useQueryClient();
   const deviceKey = device.key;
 
-
   const defaultSmsReceiver = device.config?.smsReceiver || ''; 
   const defaultWaterPumpDuration = device.config?.pumpDurations?.water || 10; 
   const defaultFertilizerPumpDuration = device.config?.pumpDurations?.fertilizer || 5;
+  const defaultAutoWateringEnabled = device.config?.autoWatering?.enabled !== undefined ? device.config.autoWatering.enabled : true;
+  const defaultAutoWateringThreshold = device.config?.autoWatering?.soilMoistureThreshold !== undefined ? device.config.autoWatering.soilMoistureThreshold : 50;
+
 
   const form = useForm<ConfigureDeviceFormValues>({
     resolver: zodResolver(configureDeviceFormSchema),
@@ -54,42 +59,34 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
       smsReceiver: defaultSmsReceiver,
       waterPumpDuration: defaultWaterPumpDuration,
       fertilizerPumpDuration: defaultFertilizerPumpDuration,
+      autoWateringEnabled: defaultAutoWateringEnabled,
+      autoWateringSoilMoistureThreshold: defaultAutoWateringThreshold,
     },
-    // Watch for changes to re-evaluate button states or other dynamic elements if needed
-    // mode: "onChange" 
   });
   
   const mutation = useMutation({
     mutationFn: async (values: ConfigureDeviceFormValues) => {
       if (!user?.uid || !device.key) throw new Error("User or device key is missing.");
       
-      const updates: Promise<any>[] = [];
-
+      // We only update the device name directly on the device object.
+      // All other settings go into the `config` node.
       if (values.deviceName !== device.name) {
-        updates.push(updateDeviceName(user.uid, device.key, values.deviceName));
+         await updateUserData(user.uid, `devices/${device.key}`, { name: values.deviceName });
       }
       
-      const deviceConfigPayload: Partial<FirebaseDevice['config']> = {};
-      let configChanged = false;
-
-      if (values.smsReceiver !== (device.config?.smsReceiver || '')) {
-        deviceConfigPayload.smsReceiver = values.smsReceiver;
-        configChanged = true;
-      }
-      if (values.waterPumpDuration !== (device.config?.pumpDurations?.water || defaultWaterPumpDuration) ||
-          values.fertilizerPumpDuration !== (device.config?.pumpDurations?.fertilizer || defaultFertilizerPumpDuration)) {
-        deviceConfigPayload.pumpDurations = {
+      const deviceConfigPayload: Partial<FirebaseDevice['config']> = {
+        pumpDurations: {
           water: values.waterPumpDuration,
           fertilizer: values.fertilizerPumpDuration,
-        };
-        configChanged = true;
-      }
-
-      if (configChanged) {
-        updates.push(updateDeviceConfig(user.uid, device.key, deviceConfigPayload));
-      }
+        },
+        smsReceiver: values.smsReceiver,
+        autoWatering: {
+          enabled: values.autoWateringEnabled,
+          soilMoistureThreshold: values.autoWateringSoilMoistureThreshold,
+        }
+      };
       
-      await Promise.all(updates);
+      await updateDeviceConfig(user.uid, device.key, deviceConfigPayload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deviceDetails', user?.uid, device.key] });
@@ -108,6 +105,13 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
     }
   });
 
+  // Helper function for updating user data - replace with actual call if different from updateDeviceConfig
+  async function updateUserData(userId: string, path: string, data: object): Promise<void> {
+    if (!rtdb) throw new Error("RTDB not initialized");
+    const dataRef = ref(rtdb, `users/${userId}/${path}`);
+    await update(dataRef, data);
+  }
+
 
   async function onSubmit(values: ConfigureDeviceFormValues) {
     mutation.mutate(values);
@@ -125,7 +129,6 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
 
     const duration = type === 'water' ? form.getValues("waterPumpDuration") : form.getValues("fertilizerPumpDuration");
 
-    // Attempt to activate pump
     try {
       await updateDeviceManualPumpState(user.uid, deviceKey, type, true);
       toast({
@@ -138,13 +141,11 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
         description: `Could not activate ${type} pump in Firebase. ${(activationError as Error).message}`,
         variant: "destructive",
       });
-      return; // Stop if activation failed
+      return; 
     }
 
-    // Wait for the duration
     await new Promise(resolve => setTimeout(resolve, duration * 1000));
 
-    // Attempt to deactivate pump
     try {
       await updateDeviceManualPumpState(user.uid, deviceKey, type, false);
       toast({
@@ -237,6 +238,50 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
               />
             </div>
 
+            <CardTitle className="text-lg font-medium pt-4 border-t mt-6">Auto Watering (Device Specific)</CardTitle>
+            <FormField
+              control={form.control}
+              name="autoWateringEnabled"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-muted/20">
+                  <div className="space-y-0.5">
+                    <FormLabel className="flex items-center text-base">
+                      <Power className="mr-2 h-4 w-4 text-muted-foreground"/> Enable Auto Watering
+                    </FormLabel>
+                    <FormDescription>
+                      Allow device to automatically water based on soil moisture.
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      disabled={mutation.isPending}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="autoWateringSoilMoistureThreshold"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center">
+                    <Thermometer className="mr-2 h-4 w-4 text-orange-500"/> Soil Moisture Threshold for Auto Watering
+                  </FormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} disabled={mutation.isPending || !form.watch("autoWateringEnabled")} placeholder="e.g., 30 (for 30%)"/>
+                  </FormControl>
+                  <FormDescription>
+                    Device will water if soil moisture drops below this value (0-100%). Only active if auto watering is enabled.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+
             <Button type="submit" className="w-full md:w-auto" disabled={mutation.isPending || form.formState.isSubmitting}>
               {mutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4"/>}
               {mutation.isPending ? "Saving..." : "Save Configuration"}
@@ -254,7 +299,7 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
               variant="outline" 
               className="flex-1 border-accent text-accent hover:bg-accent hover:text-accent-foreground"
               onClick={() => handleManualPump('water')}
-              disabled={mutation.isPending} // You might want more specific disabling logic if one pump is active
+              disabled={mutation.isPending} 
             >
               <Droplets className="mr-2 h-4 w-4"/>
               Activate Water Pump ({form.watch("waterPumpDuration")}s)
@@ -263,7 +308,7 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
               variant="outline" 
               className="flex-1 border-accent text-accent hover:bg-accent hover:text-accent-foreground"
               onClick={() => handleManualPump('fertilizer')}
-              disabled={mutation.isPending} // You might want more specific disabling logic if one pump is active
+              disabled={mutation.isPending} 
             >
               <TestTube2 className="mr-2 h-4 w-4"/>
               Activate Fertilizer Pump ({form.watch("fertilizerPumpDuration")}s)
@@ -277,3 +322,7 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
     </Card>
   );
 }
+// Added missing import for rtdb and update from firebase/database in ConfigureDeviceForm
+import { rtdb } from '@/lib/firebase/config';
+import { ref, update } from 'firebase/database';
+

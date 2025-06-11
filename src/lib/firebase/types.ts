@@ -39,10 +39,14 @@ export interface FirebaseDevice {
   useDefaultSettings: boolean;
   key?: string; // Firebase key, added after fetching
   isConnected?: boolean; // To be inferred or added to DB schema
-  // Configuration specific to this device (if any, not in provided top-level JSON)
+  // Configuration specific to this device
   config?: {
     pumpDurations?: { water: number; fertilizer: number };
     smsReceiver?: string;
+    autoWatering?: {
+      enabled?: boolean;
+      soilMoistureThreshold?: number; // The value Arduino considers "dry"
+    };
   };
   manualControl?: {
     waterPumpActive?: boolean;
