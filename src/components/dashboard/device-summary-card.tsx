@@ -38,8 +38,51 @@ export function DeviceSummaryCard({ device }: DeviceSummaryCardProps) {
 
   const getUnit = (sensorKey: keyof DeviceSensorReadings) => {
     if (sensorKey.toLowerCase().includes('temperature')) return '°C';
-    if (sensorKey.toLowerCase().includes('humidity') || sensorKey.toLowerCase().includes('moisture') || sensorKey.toLowerCase().includes('level')) return '%';
+    // For soilMoisture & airHumidity, if they are percentages, this is fine.
+    // If they are raw values, this unit might need adjustment or the value needs conversion.
+    // Assuming soilMoisture and airHumidity in readings are already percentages.
+    if (sensorKey.toLowerCase().includes('humidity') || sensorKey.toLowerCase().includes('moisture')) return '%';
+    // WaterLevel and FertilizerLevel are handled separately below for progress.
     return '';
+  }
+
+  // Calculate water level percentage and display string
+  const currentWaterDepthCm = device.readings?.waterLevel ?? 0; // Assumed to be in CM
+  const waterContainerHeightCm = device.config?.containerHeights?.water;
+  let waterLevelPercent = 0;
+  let waterLevelText = `${currentWaterDepthCm}cm`;
+
+  if (waterContainerHeightCm && waterContainerHeightCm > 0) {
+    waterLevelPercent = Math.max(0, Math.min(100, (currentWaterDepthCm / waterContainerHeightCm) * 100));
+    waterLevelText = `${currentWaterDepthCm.toFixed(1)}cm / ${waterContainerHeightCm}cm (${waterLevelPercent.toFixed(0)}%)`;
+  } else if (device.readings?.waterLevel !== undefined) {
+    // Fallback if height not configured: treat reading as percentage if it was intended to be
+    // This part is tricky; for now, we assume if height isn't set, raw CM is less meaningful for a % bar.
+    // Let's assume if height isn't set, the reading might be a percentage (0-100) or we show CM.
+    // For consistency with the request, if height is missing, the bar might not be accurate.
+    // We will still use currentWaterDepthCm for the text if height is not present,
+    // and the bar will be 0 or based on some assumption if readings.waterLevel was a %.
+    // To avoid breaking if readings.waterLevel was a %, let's use it if height is not set.
+    // This is a compromise: if height is not set, we assume readings.waterLevel MIGHT be a percentage.
+    waterLevelPercent = device.readings?.waterLevel ?? 0; // Assume it's % if no height
+    waterLevelText = `${waterLevelPercent.toFixed(0)}% (height not set)`;
+     if (waterContainerHeightCm === undefined) waterLevelText = `${currentWaterDepthCm}cm (height not set)`;
+  }
+
+
+  // Calculate fertilizer level percentage and display string
+  const currentFertilizerDepthCm = device.readings?.fertilizerLevel ?? 0; // Assumed to be in CM
+  const fertilizerContainerHeightCm = device.config?.containerHeights?.fertilizer;
+  let fertilizerLevelPercent = 0;
+  let fertilizerLevelText = `${currentFertilizerDepthCm}cm`;
+
+  if (fertilizerContainerHeightCm && fertilizerContainerHeightCm > 0) {
+    fertilizerLevelPercent = Math.max(0, Math.min(100, (currentFertilizerDepthCm / fertilizerContainerHeightCm) * 100));
+    fertilizerLevelText = `${currentFertilizerDepthCm.toFixed(1)}cm / ${fertilizerContainerHeightCm}cm (${fertilizerLevelPercent.toFixed(0)}%)`;
+  } else if (device.readings?.fertilizerLevel !== undefined) {
+    fertilizerLevelPercent = device.readings?.fertilizerLevel ?? 0; // Assume it's % if no height
+    fertilizerLevelText = `${fertilizerLevelPercent.toFixed(0)}% (height not set)`;
+    if (fertilizerContainerHeightCm === undefined) fertilizerLevelText = `${currentFertilizerDepthCm}cm (height not set)`;
   }
 
   return (
@@ -59,6 +102,9 @@ export function DeviceSummaryCard({ device }: DeviceSummaryCardProps) {
       <CardContent className="p-4 space-y-4 flex-grow">
         <div className="grid grid-cols-2 gap-3">
           {SENSOR_ORDER_AND_DETAILS.map(({ key, legacyId }) => {
+            // Skip waterLevel and fertilizerLevel here as they are handled below
+            if (key === 'waterLevel' || key === 'fertilizerLevel') return null;
+            
             const readingValue = device.readings?.[key];
             const IconComponent = getLucideIcon(SENSOR_ICON_NAMES[legacyId]);
             const bgColor = getSensorBackgroundColor(legacyId);
@@ -71,6 +117,7 @@ export function DeviceSummaryCard({ device }: DeviceSummaryCardProps) {
                   {IconComponent && <IconComponent className="h-4 w-4 text-foreground/70" />}
                 </div>
                 <div className="text-xl font-bold text-foreground">
+                  {/* Assuming soilMoisture & airHumidity are already percentages */}
                   {readingValue !== undefined ? `${readingValue}${unit}` : 'N/A'}
                 </div>
               </div>
@@ -84,16 +131,16 @@ export function DeviceSummaryCard({ device }: DeviceSummaryCardProps) {
             <div>
               <div className="flex justify-between text-xs mb-0.5">
                 <span className="font-medium">Water</span>
-                <span className="text-muted-foreground">{device.readings?.waterLevel ?? 0}%</span>
+                <span className="text-muted-foreground">{waterLevelText}</span>
               </div>
-              <Progress value={device.readings?.waterLevel ?? 0} className="h-2 [&>div]:bg-[hsl(var(--progress-water))]" />
+              <Progress value={waterLevelPercent} className="h-2 [&>div]:bg-[hsl(var(--progress-water))]" />
             </div>
             <div>
               <div className="flex justify-between text-xs mb-0.5">
                 <span className="font-medium">Fertilizer</span>
-                <span className="text-muted-foreground">{device.readings?.fertilizerLevel ?? 0}%</span>
+                <span className="text-muted-foreground">{fertilizerLevelText}</span>
               </div>
-              <Progress value={device.readings?.fertilizerLevel ?? 0} className="h-2 [&>div]:bg-[hsl(var(--progress-fertilizer))]" />
+              <Progress value={fertilizerLevelPercent} className="h-2 [&>div]:bg-[hsl(var(--progress-fertilizer))]" />
             </div>
           </div>
         </div>
