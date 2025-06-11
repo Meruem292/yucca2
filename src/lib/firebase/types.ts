@@ -43,7 +43,8 @@ export interface FirebaseDevice {
   // Configuration specific to this device
   config?: {
     pumpDurations?: { water: number; fertilizer: number };
-    containerHeights?: { water: number; fertilizer: number }; // New
+    containerHeights?: { water: number; fertilizer: number };
+    alertThresholds?: { water: number; fertilizer: number }; // New
   };
   manualControl?: {
     waterPumpActive?: boolean;

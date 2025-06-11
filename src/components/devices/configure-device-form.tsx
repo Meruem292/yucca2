@@ -18,7 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Save, AlertTriangle, Phone, Droplets, TestTube2, Zap, Loader2, Ruler } from "lucide-react";
+import { Save, AlertTriangle, Phone, Droplets, TestTube2, Zap, Loader2, Ruler, BellRing } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { updateDeviceManualPumpState, updateDeviceConfig, updateDeviceProperties } from "@/lib/firebase/rtdb"; 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -30,6 +30,8 @@ const configureDeviceFormSchema = z.object({
   fertilizerPumpDuration: z.coerce.number().min(1, {message: "Duration must be at least 1 second."}).max(300, {message: "Max 300 seconds."}),
   waterContainerHeight: z.coerce.number().min(1, {message: "Height must be at least 1 cm."}).max(500, {message: "Max 500 cm."}),
   fertilizerContainerHeight: z.coerce.number().min(1, {message: "Height must be at least 1 cm."}).max(500, {message: "Max 500 cm."}),
+  lowWaterAlertThreshold: z.coerce.number().min(0, {message: "Threshold must be 0% or more."}).max(100, {message: "Threshold cannot exceed 100%."}),
+  lowFertilizerAlertThreshold: z.coerce.number().min(0, {message: "Threshold must be 0% or more."}).max(100, {message: "Threshold cannot exceed 100%."}),
 });
 
 type ConfigureDeviceFormValues = z.infer<typeof configureDeviceFormSchema>;
@@ -49,6 +51,8 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
   const defaultFertilizerPumpDuration = device.config?.pumpDurations?.fertilizer || 5;
   const defaultWaterContainerHeight = device.config?.containerHeights?.water || 30;
   const defaultFertilizerContainerHeight = device.config?.containerHeights?.fertilizer || 20;
+  const defaultLowWaterAlertThreshold = device.config?.alertThresholds?.water || 20;
+  const defaultLowFertilizerAlertThreshold = device.config?.alertThresholds?.fertilizer || 20;
 
 
   const form = useForm<ConfigureDeviceFormValues>({
@@ -60,6 +64,8 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
       fertilizerPumpDuration: defaultFertilizerPumpDuration,
       waterContainerHeight: defaultWaterContainerHeight,
       fertilizerContainerHeight: defaultFertilizerContainerHeight,
+      lowWaterAlertThreshold: defaultLowWaterAlertThreshold,
+      lowFertilizerAlertThreshold: defaultLowFertilizerAlertThreshold,
     },
   });
   
@@ -71,17 +77,18 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
       if (values.deviceName !== device.name) {
         devicePropertyUpdates.name = values.deviceName;
       }
+      
       const currentSmsReceiver = device.smsReceiver || '';
-      if (values.smsReceiver !== currentSmsReceiver) {
-         // Allow setting to empty string if it was previously defined, or from empty to defined
+      if (values.smsReceiver !== currentSmsReceiver || (currentSmsReceiver && values.smsReceiver === '')) {
         devicePropertyUpdates.smsReceiver = values.smsReceiver;
       }
+
 
       if (Object.keys(devicePropertyUpdates).length > 0) {
         await updateDeviceProperties(user.uid, device.key, devicePropertyUpdates);
       }
       
-      const deviceConfigPayload: Partial<Pick<FirebaseDevice, 'config'>['config']> = {
+      const deviceConfigPayload: FirebaseDevice['config'] = { // Ensure type compliance
         pumpDurations: {
           water: values.waterPumpDuration,
           fertilizer: values.fertilizerPumpDuration,
@@ -89,10 +96,13 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
         containerHeights: {
             water: values.waterContainerHeight,
             fertilizer: values.fertilizerContainerHeight,
+        },
+        alertThresholds: {
+            water: values.lowWaterAlertThreshold,
+            fertilizer: values.lowFertilizerAlertThreshold,
         }
       };
       
-      // Always attempt to update config (pump durations, container heights) if the form is submitted.
       await updateDeviceConfig(user.uid, device.key, deviceConfigPayload);
     },
     onSuccess: () => {
@@ -273,6 +283,42 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
               />
             </div>
 
+            <CardTitle className="text-lg font-medium pt-4 border-t mt-6">Alert Thresholds (Device Specific)</CardTitle>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                control={form.control}
+                name="lowWaterAlertThreshold"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel className="flex items-center">
+                        <BellRing className="mr-2 h-4 w-4 text-blue-500"/> Low Water Alert At (%)
+                    </FormLabel>
+                    <FormControl>
+                        <Input type="number" {...field} disabled={mutation.isPending} />
+                    </FormControl>
+                    <FormDescription>Alert when water level drops below this percentage.</FormDescription>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                <FormField
+                control={form.control}
+                name="lowFertilizerAlertThreshold"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel className="flex items-center">
+                        <BellRing className="mr-2 h-4 w-4 text-green-500"/> Low Fertilizer Alert At (%)
+                    </FormLabel>
+                    <FormControl>
+                        <Input type="number" {...field} disabled={mutation.isPending} />
+                    </FormControl>
+                    <FormDescription>Alert when fertilizer level drops below this percentage.</FormDescription>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+            </div>
+
 
             <Button type="submit" className="w-full md:w-auto" disabled={mutation.isPending || form.formState.isSubmitting}>
               {mutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4"/>}
@@ -319,4 +365,3 @@ import { rtdb } from '@/lib/firebase/config';
 // update function is not directly used here anymore, but ref might be used by other parts of the file if not cleaned up.
 // For now, keeping it, but it's not strictly necessary for the current changes.
 import { ref, update } from 'firebase/database';
-

@@ -130,6 +130,13 @@ export async function updateDeviceConfig(userId: string, deviceKey: string, conf
         fertilizer: config.containerHeights.fertilizer,
     };
   }
+  if (config?.alertThresholds) {
+    validConfig.alertThresholds = {
+        water: config.alertThresholds.water,
+        fertilizer: config.alertThresholds.fertilizer,
+    };
+  }
+
 
   if (Object.keys(validConfig).length > 0) {
     return updateUserData(userId, `devices/${deviceKey}/config`, validConfig);
@@ -169,6 +176,7 @@ export async function registerNewDevice(userId: string, deviceName: string, uniq
     const defaultConfigContents: FirebaseDevice['config'] = {
       pumpDurations: { water: 10, fertilizer: 5 },
       containerHeights: { water: 30, fertilizer: 20 }, // Default container heights in cm
+      alertThresholds: { water: 20, fertilizer: 20 }, // Default alert thresholds in %
     };
 
     const newDeviceData: Omit<FirebaseDevice, 'key' | 'isConnected'> = { 
@@ -179,7 +187,11 @@ export async function registerNewDevice(userId: string, deviceName: string, uniq
       lastUpdated: now,
       readings: defaultReadings,
       useDefaultSettings: useDefaultSettings,
-      config: useDefaultSettings ? defaultConfigContents : { pumpDurations: { water: 10, fertilizer: 5 }, containerHeights: { water: 0, fertilizer: 0} },
+      config: useDefaultSettings ? defaultConfigContents : { 
+        pumpDurations: { water: 10, fertilizer: 5 }, 
+        containerHeights: { water: 0, fertilizer: 0},
+        alertThresholds: { water: 20, fertilizer: 20} // Also set defaults if not using "default settings" for consistency
+      },
       manualControl: { 
         waterPumpActive: false,
         fertilizerPumpActive: false,
