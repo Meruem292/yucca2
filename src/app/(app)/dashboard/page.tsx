@@ -1,17 +1,18 @@
 
 "use client";
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { getUserStats, getUserDevices } from '@/lib/firebase/rtdb';
-import type { UserStats, FirebaseDevice } from '@/lib/firebase/types';
+import type { UserStats, FirebaseDevice, DashboardAlert } from '@/lib/firebase/types';
 
 import { DeviceSummaryCard } from '@/components/dashboard/device-summary-card';
 import { StatCard } from '@/components/dashboard/stat-card';
+import { AlertListItem } from '@/components/dashboard/alert-list-item'; // New import
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button'; // Added
-import Link from 'next/link'; // Added
-import { BarChart3, Clock, Leaf, AlertTriangle, CheckCircle2, PackageSearch, Droplets, Thermometer, Wind, PlusCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { BarChart3, Clock, Leaf, AlertTriangle, CheckCircle2, PackageSearch, Droplets, Thermometer, PlusCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function DashboardPage() {
@@ -30,8 +31,108 @@ export default function DashboardPage() {
     enabled: !!userId,
   });
 
-  // Example data for "Plants Needing Attention" - can be dynamic based on actual device data later
-  const plantsHealthy = true; // Placeholder: derive this from device statuses or critical readings
+  const [dashboardAlerts, setDashboardAlerts] = useState<DashboardAlert[]>([]);
+
+  useEffect(() => {
+    if (devices && devices.length > 0) {
+      const newAlerts: DashboardAlert[] = [];
+      devices.forEach(device => {
+        if (!device.key) return; // Ensure device key exists
+
+        // Calculate water level percentage
+        let waterLevelPercent = -1;
+        const currentWaterDepth = device.readings?.waterLevel;
+        const waterContainerHeight = device.config?.containerHeights?.water;
+        if (currentWaterDepth !== undefined) {
+          if (waterContainerHeight && waterContainerHeight > 0) {
+            waterLevelPercent = Math.max(0, Math.min(100, (currentWaterDepth / waterContainerHeight) * 100));
+          } else if ((!waterContainerHeight || waterContainerHeight <= 0) && currentWaterDepth >= 0 && currentWaterDepth <= 100) {
+            waterLevelPercent = currentWaterDepth; // Assume it's a direct percentage
+          }
+        }
+
+        // Check for low water
+        if (waterLevelPercent !== -1) {
+          const waterThreshold = device.config?.alertThresholds?.water ?? 20;
+          if (waterLevelPercent < waterThreshold) {
+            newAlerts.push({
+              id: `${device.key}-low-water`,
+              deviceId: device.key,
+              deviceName: device.name,
+              type: 'low_water',
+              message: `Water level critical (${waterLevelPercent.toFixed(0)}%). Threshold: ${waterThreshold}%`,
+              timestamp: device.lastUpdated,
+              severity: 'warning',
+            });
+          }
+        }
+
+        // Calculate fertilizer level percentage
+        let fertilizerLevelPercent = -1;
+        const currentFertilizerDepth = device.readings?.fertilizerLevel;
+        const fertilizerContainerHeight = device.config?.containerHeights?.fertilizer;
+        if (currentFertilizerDepth !== undefined) {
+          if (fertilizerContainerHeight && fertilizerContainerHeight > 0) {
+            fertilizerLevelPercent = Math.max(0, Math.min(100, (currentFertilizerDepth / fertilizerContainerHeight) * 100));
+          } else if ((!fertilizerContainerHeight || fertilizerContainerHeight <= 0) && currentFertilizerDepth >= 0 && currentFertilizerDepth <= 100) {
+            fertilizerLevelPercent = currentFertilizerDepth; // Assume it's a direct percentage
+          }
+        }
+        
+        // Check for low fertilizer
+        if (fertilizerLevelPercent !== -1) {
+          const fertilizerThreshold = device.config?.alertThresholds?.fertilizer ?? 20;
+          if (fertilizerLevelPercent < fertilizerThreshold) {
+            newAlerts.push({
+              id: `${device.key}-low-fertilizer`,
+              deviceId: device.key,
+              deviceName: device.name,
+              type: 'low_fertilizer',
+              message: `Fertilizer level critical (${fertilizerLevelPercent.toFixed(0)}%). Threshold: ${fertilizerThreshold}%`,
+              timestamp: device.lastUpdated,
+              severity: 'warning',
+            });
+          }
+        }
+
+        // Check for active manual water pump
+        if (device.manualControl?.waterPumpActive) {
+          newAlerts.push({
+            id: `${device.key}-pump-water-active`,
+            deviceId: device.key,
+            deviceName: device.name,
+            type: 'pump_active_water',
+            message: 'Water pump manually activated.',
+            timestamp: device.lastUpdated,
+            severity: 'info',
+          });
+        }
+
+        // Check for active manual fertilizer pump
+        if (device.manualControl?.fertilizerPumpActive) {
+          newAlerts.push({
+            id: `${device.key}-pump-fertilizer-active`,
+            deviceId: device.key,
+            deviceName: device.name,
+            type: 'pump_active_fertilizer',
+            message: 'Fertilizer pump manually activated.',
+            timestamp: device.lastUpdated,
+            severity: 'info',
+          });
+        }
+      });
+
+      newAlerts.sort((a, b) => {
+        if (a.severity === 'warning' && b.severity !== 'warning') return -1;
+        if (a.severity !== 'warning' && b.severity === 'warning') return 1;
+        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+      });
+      setDashboardAlerts(newAlerts);
+    } else {
+      setDashboardAlerts([]);
+    }
+  }, [devices]);
+
 
   if (authLoading) {
     return (
@@ -66,8 +167,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      {/* Dashboard Banner */}
-      <div className="rounded-lg bg-[hsl(var(--dashboard-banner-background))] p-6 shadow">
+      <div className="rounded-lg bg-[hsl(var(--dashboard-banner-background))] p-6 shadow hover:shadow-lg transition-shadow duration-300">
         <div className="flex items-center gap-3">
             <Leaf className="h-8 w-8 text-[hsl(var(--dashboard-banner-title-foreground))]" />
             <div>
@@ -79,15 +179,14 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Stats Grid */}
       <section>
          <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-4">
             {statsLoading ? (
               <>
-                <Skeleton className="h-32 rounded-lg" />
-                <Skeleton className="h-32 rounded-lg" />
-                <Skeleton className="h-32 rounded-lg" />
-                <Skeleton className="h-32 rounded-lg" />
+                <StatCard title="Active Plants" value={0} icon={Leaf} isLoading={true} />
+                <StatCard title="Active Sensors" value={0} icon={Thermometer} isLoading={true} />
+                <StatCard title="Water Level" value={"0%"} icon={Droplets} isLoading={true} />
+                <StatCard title="Fertilizer Level" value={"0%"} icon={PackageSearch} isLoading={true} />
               </>
             ) : (
               <>
@@ -103,15 +202,13 @@ export default function DashboardPage() {
                 <StatCard 
                   title="Fertilizer Level" 
                   value={`${userStats?.fertilizerLevel ?? 0}%`} 
-                  icon={PackageSearch} // Using PackageSearch as a stand-in for fertilizer icon
+                  icon={PackageSearch}
                 />
               </>
             )}
           </div>
       </section>
 
-
-      {/* Device Analytics Section */}
       <section>
         <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -126,9 +223,9 @@ export default function DashboardPage() {
         </div>
         {devicesLoading ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                <Skeleton className="h-[280px] rounded-xl" />
-                <Skeleton className="h-[280px] rounded-xl" />
-                <Skeleton className="h-[280px] rounded-xl" />
+                <Skeleton className="h-[300px] rounded-xl" />
+                <Skeleton className="h-[300px] rounded-xl" />
+                <Skeleton className="h-[300px] rounded-xl" />
             </div>
         ) : devices && devices.length > 0 ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -148,35 +245,38 @@ export default function DashboardPage() {
         )}
       </section>
 
-      {/* Recent Activity / Alerts Section */}
       <section>
         <div className="flex items-center gap-2 mb-4">
           <Clock className="h-6 w-6 text-primary" />
-          <h2 className="text-xl font-semibold tracking-tight text-foreground">Recent Activity / Alerts</h2>
+          <h2 className="text-xl font-semibold tracking-tight text-foreground">Recent Activity & Alerts</h2>
         </div>
         <Card className="shadow-sm rounded-lg">
             <CardHeader className="flex flex-row items-center space-x-3 rounded-t-lg bg-[hsl(var(--attention-header-background))] p-4">
             <AlertTriangle className="h-5 w-5 text-[hsl(var(--attention-header-foreground))]" />
             <CardTitle className="text-md font-semibold text-[hsl(var(--attention-header-foreground))]">
-                Plants Needing Attention
+                Alerts & Manual Pump Activity
             </CardTitle>
             </CardHeader>
-            <CardContent className="p-6 sm:p-8 text-center">
-            {plantsHealthy ? (
-                <div className="flex flex-col items-center justify-center gap-3 py-4">
-                <CheckCircle2 className="h-12 w-12 sm:h-16 sm:w-16 text-primary mb-2" />
-                <p className="text-lg sm:text-xl font-semibold text-card-foreground">All Plants Are Healthy</p>
-                <p className="text-sm text-muted-foreground">No actions required at this time.</p>
+            <CardContent className="p-0"> {/* Removed padding to allow AlertListItem to control its own */}
+            {authLoading || devicesLoading ? (
+                <div className="p-6 space-y-3">
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                </div>
+            ) : dashboardAlerts.length > 0 ? (
+                <div className="divide-y divide-border">
+                    {dashboardAlerts.map((alert) => (
+                        <AlertListItem key={alert.id} alert={alert} />
+                    ))}
                 </div>
             ) : (
-                <div className="flex flex-col items-center justify-center gap-3 py-4">
-                <AlertTriangle className="h-12 w-12 sm:h-16 sm:w-16 text-destructive mb-2" />
-                <p className="text-lg sm:text-xl font-semibold text-destructive">Some plants need attention!</p>
-                <p className="text-sm text-muted-foreground">Check device details for more information.</p>
+                <div className="flex flex-col items-center justify-center gap-3 py-8 text-center">
+                    <CheckCircle2 className="h-12 w-12 sm:h-16 sm:w-16 text-primary mb-2" />
+                    <p className="text-lg sm:text-xl font-semibold text-card-foreground">All Clear!</p>
+                    <p className="text-sm text-muted-foreground">No critical alerts or recent manual activity to show.</p>
                 </div>
             )}
-            {/* Placeholder for other recent activities */}
-            {/* <p className="text-xs text-muted-foreground mt-4">No other recent activity.</p> */}
             </CardContent>
         </Card>
       </section>

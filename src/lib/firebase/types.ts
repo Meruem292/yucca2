@@ -23,10 +23,10 @@ export interface UserStats {
 export interface DeviceSensorReadings {
   airHumidity: number;
   airTemperature: number;
-  fertilizerLevel: number;
+  fertilizerLevel: number; // Assumed to be depth in cm, or % if container height not set
   soilMoisture: number;
   soilTemperature: number;
-  waterLevel: number;
+  waterLevel: number; // Assumed to be depth in cm, or % if container height not set
 }
 
 // Path: /users/{userId}/devices/{deviceKey}
@@ -35,17 +35,15 @@ export interface FirebaseDevice {
   lastUpdated: string; // ISO string timestamp
   location: string;
   name: string;
-  // smsReceiver is now inside config
   readings: DeviceSensorReadings;
   useDefaultSettings: boolean;
   key?: string; // Firebase key, added after fetching
   isConnected?: boolean; // To be inferred or added to DB schema
-  // Configuration specific to this device
   config?: {
     pumpDurations?: { water: number; fertilizer: number };
     containerHeights?: { water: number; fertilizer: number };
     alertThresholds?: { water: number; fertilizer: number };
-    smsReceiver?: string; // Moved here
+    smsReceiver?: string;
   };
   manualControl?: {
     waterPumpActive?: boolean;
@@ -59,45 +57,53 @@ export interface DeviceHistoryEntry extends DeviceSensorReadings {
 }
 
 
-// UI-specific types (might be similar to mock-data types but for Firebase data)
+// UI-specific types
 
 // For SensorCard on device detail page
 export type SensorCardReading = {
-  id: keyof DeviceSensorReadings | 'fertilizerLevel' | 'waterLevel'; // Making it more specific
+  id: keyof DeviceSensorReadings | 'fertilizerLevel' | 'waterLevel';
   name: string;
   value: string | number;
   unit: string;
-  iconName: string; // From SENSOR_ICON_NAMES
-  lastUpdated?: string; // From device.lastUpdated
+  iconName: string;
+  lastUpdated?: string;
 };
 
 
 // For charts
 export interface SensorHistoryDataPoint {
-  date: string; // ISO string or formatted for chart
+  date: string;
   value: number;
 }
 
 export interface TemperatureHistoryDataPoint {
-  date: string; // ISO string or formatted for chart
+  date: string;
   soil_temperature: number | null;
   air_temperature: number | null;
 }
 
 // For RecentReadingsTable
 export interface RecentReadingRow {
-  id: string; // timestamp or unique key
-  time: string; // Formatted time string
+  id: string;
+  time: string;
   soil_moisture: string | null;
   soil_temperature: string | null;
   air_temperature: string | null;
   air_humidity: string | null;
 }
 
+// For Dashboard Alerts
+export interface DashboardAlert {
+  id: string; // Unique key for the alert (e.g., deviceKey + alertType)
+  deviceId: string;
+  deviceName: string;
+  type: 'low_water' | 'low_fertilizer' | 'pump_active_water' | 'pump_active_fertilizer';
+  message: string;
+  timestamp: string; // Typically device.lastUpdated
+  severity: 'warning' | 'info'; // 'warning' for low levels, 'info' for pump activity
+}
+
 // General Device type used by components (combination of FirebaseDevice and other useful props)
-// This is similar to the old Device type from mock-data.ts, but adapted for Firebase.
 export interface AppDevice extends FirebaseDevice {
-  // isConnected is already optional in FirebaseDevice
-  sensors: SensorCardReading[]; // For SensorCard components
-  // levels for DeviceSummaryCard (water and fertilizer) are in device.readings
+  sensors: SensorCardReading[];
 }
