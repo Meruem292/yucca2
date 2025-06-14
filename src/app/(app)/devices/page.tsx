@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { getUserDevices } from '@/lib/firebase/rtdb';
 import type { FirebaseDevice } from '@/lib/firebase/types';
 import { Button } from '@/components/ui/button';
-import { DeviceListItem } from '@/components/devices/device-list-item';
+import { DeviceSummaryCard } from '@/components/dashboard/device-summary-card'; // Changed import
 import { PlusCircle, WifiOff } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -33,7 +33,7 @@ export default function DevicesPage() {
           <Skeleton className="h-10 w-40" />
         </div>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-[200px] rounded-xl" />)}
+          {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-[300px] rounded-xl" />)} {/* Adjusted skeleton height */}
         </div>
       </div>
     );
@@ -73,7 +73,7 @@ export default function DevicesPage() {
 
       {devicesLoading ? (
          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-[200px] rounded-xl" />)}
+          {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-[300px] rounded-xl" />)} {/* Adjusted skeleton height */}
         </div>
       ) : devices && devices.length === 0 ? (
         <Card className="text-center py-12">
@@ -106,7 +106,7 @@ export default function DevicesPage() {
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {devices?.map((device) => (
-            <DeviceListItem key={device.key} device={device} />
+            <DeviceSummaryCard key={device.key} device={device} /> // Changed to DeviceSummaryCard
           ))}
         </div>
       )}
