@@ -20,6 +20,7 @@ import {
   Settings2,
   SlidersHorizontal,
   Plus,
+  PlusCircle, // Added for new icon
   Save,
   ListPlus,
   LogOut,
@@ -63,9 +64,9 @@ export const bottomNavItems: NavItem[] = [
     icon: 'Leaf',
   },
   {
-    title: 'Control',
-    href: '/devices/register', // Example different link for control - adjust as needed
-    icon: 'SlidersHorizontal',
+    title: '+ Add Device', // Changed title
+    href: '/devices/register', 
+    icon: 'PlusCircle', // Changed icon
   },
   {
     title: 'Settings',
@@ -125,6 +126,7 @@ export const getLucideIcon = (name: string): LucideIcon | null => {
     case 'Clock': return Clock;
     case 'SlidersHorizontal': return SlidersHorizontal;
     case 'Plus': return Plus;
+    case 'PlusCircle': return PlusCircle; // Added case for PlusCircle
     case 'Save': return Save;
     case 'ListPlus': return ListPlus;
     case 'LogOut': return LogOut;
@@ -151,3 +153,4 @@ export const HISTORY_SENSOR_TYPES: {id: SensorType; label: string; icon: SensorI
     { id: 'temperature', label: 'Temperature', icon: 'Thermometer' }, // Represents combined view
     { id: 'air_humidity', label: 'Humidity', icon: 'CloudRain' },
 ];
+
