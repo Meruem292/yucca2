@@ -43,13 +43,18 @@ export function BottomNav() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex h-full w-full flex-col items-center justify-center gap-1 rounded-md p-2 transition-colors duration-150 ease-in-out hover:bg-muted/50",
-                  isActive ? "text-primary" : "text-muted-foreground"
+                  "group flex h-full w-full flex-col items-center justify-center gap-1 rounded-md p-2 transition-colors duration-150 ease-in-out hover:bg-muted/50",
+                  isActive ? "text-primary" : "text-accent hover:text-accent/80" // Use accent for inactive, provide hover feedback
                 )}
                 aria-disabled={item.disabled}
                 aria-current={isActive ? "page" : undefined}
               >
-                {IconComponent && <IconComponent className="h-5 w-5 shrink-0" />}
+                {IconComponent && (
+                  <IconComponent className={cn(
+                    "h-5 w-5 shrink-0",
+                    isActive && "group-hover:scale-110 group-hover:-translate-y-0.5 transition-transform duration-200 ease-in-out"
+                  )} />
+                )}
                 <span className="text-[0.6rem] font-medium leading-tight tracking-tighter">
                   {item.title}
                 </span>
@@ -61,3 +66,4 @@ export function BottomNav() {
     </footer>
   );
 }
+

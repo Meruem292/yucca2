@@ -86,7 +86,7 @@ export function DeviceSummaryCard({ device }: DeviceSummaryCardProps) {
   }
 
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-xl overflow-hidden flex flex-col">
+    <Card className="shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-200 ease-in-out rounded-xl overflow-hidden flex flex-col">
       <CardHeader className="p-4 bg-muted/20 border-b">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -112,11 +112,11 @@ export function DeviceSummaryCard({ device }: DeviceSummaryCardProps) {
             
             return (
               <div key={key} className={`p-3 rounded-lg ${bgColor} space-y-1 shadow-sm`}>
-                <div className="flex items-center justify-between text-xs font-medium text-foreground/80">
+                <div className="flex items-center justify-between text-xs font-medium text-card-foreground">
                   <span>{SENSOR_DISPLAY_NAMES[legacyId] || 'N/A'}</span>
-                  {IconComponent && <IconComponent className="h-4 w-4 text-foreground/70" />}
+                  {IconComponent && <IconComponent className="h-4 w-4 text-primary" />}
                 </div>
-                <div className="text-xl font-bold text-foreground">
+                <div className="text-xl font-bold text-card-foreground">
                   {/* Assuming soilMoisture & airHumidity are already percentages */}
                   {readingValue !== undefined ? `${readingValue}${unit}` : 'N/A'}
                 </div>
@@ -155,3 +155,4 @@ export function DeviceSummaryCard({ device }: DeviceSummaryCardProps) {
     </Card>
   );
 }
+

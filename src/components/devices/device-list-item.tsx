@@ -36,7 +36,7 @@ export function DeviceListItem({ device }: { device: FirebaseDevice }) {
 
 
   return (
-    <Card className="hover:shadow-lg transition-shadow duration-200 flex flex-col">
+    <Card className="hover:shadow-xl hover:scale-[1.02] transition-all duration-200 ease-in-out flex flex-col">
       <CardHeader>
         <div className="flex justify-between items-start">
           <div className="flex items-center gap-2">
@@ -83,3 +83,4 @@ export function DeviceListItem({ device }: { device: FirebaseDevice }) {
     </Card>
   );
 }
+

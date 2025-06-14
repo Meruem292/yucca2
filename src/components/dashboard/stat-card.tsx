@@ -1,3 +1,4 @@
+
 import type { LucideIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -30,7 +31,7 @@ export function StatCard({ title, value, icon: Icon, valueClassName, description
   }
   
   return (
-    <Card className="shadow-sm hover:shadow-md transition-shadow rounded-lg">
+    <Card className="shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-200 ease-in-out rounded-lg">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
         <Icon className="h-5 w-5 text-primary" />
@@ -48,3 +49,4 @@ export function StatCard({ title, value, icon: Icon, valueClassName, description
     </Card>
   );
 }
+

@@ -18,7 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Save, AlertTriangle, Phone, Droplets, TestTube2, Zap, Loader2, Ruler, BellRing } from "lucide-react";
+import { Save, AlertTriangle, Phone, Droplets, TestTube2, Zap, Loader2, Ruler, BellRing, Settings as SettingsIcon } from "lucide-react"; // Added SettingsIcon
 import { useAuth } from "@/hooks/useAuth";
 import { updateDeviceConfig, updateDeviceProperties } from "@/lib/firebase/rtdb"; 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -78,8 +78,9 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
         await updateDeviceProperties(user.uid, device.key, { name: values.deviceName });
       }
       
-      // Prepare payload for config updates (including smsReceiver)
+      // Prepare payload for config updates
       const deviceConfigPayload: Partial<FirebaseDevice['config']> = {
+        smsReceiver: values.smsReceiver,
         pumpDurations: {
           water: values.waterPumpDuration,
           fertilizer: values.fertilizerPumpDuration,
@@ -92,7 +93,6 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
             water: values.lowWaterAlertThreshold,
             fertilizer: values.lowFertilizerAlertThreshold,
         },
-        smsReceiver: values.smsReceiver, // smsReceiver is now part of config
       };
       
       await updateDeviceConfig(user.uid, device.key, deviceConfigPayload);
@@ -169,7 +169,10 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
   return (
     <Card className="shadow-xl">
       <CardHeader>
-        <CardTitle className="text-xl font-semibold">Device Configuration</CardTitle>
+        <CardTitle className="text-xl font-semibold flex items-center gap-2">
+          <SettingsIcon className="h-5 w-5 text-primary" />
+          Device Configuration
+        </CardTitle>
         <CardDescription>Manage settings and manual controls for {device.name}.</CardDescription>
       </CardHeader>
       <CardContent>
@@ -357,3 +360,6 @@ import { rtdb } from '@/lib/firebase/config';
 // update function is not directly used here anymore, but ref might be used by other parts of the file if not cleaned up.
 // For now, keeping it, but it's not strictly necessary for the current changes.
 import { ref, update } from 'firebase/database';
+import { updateDeviceManualPumpState } from '@/lib/firebase/rtdb'; // Ensure this is imported
+
+

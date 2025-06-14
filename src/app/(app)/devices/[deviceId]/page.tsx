@@ -14,7 +14,7 @@ import { ConfigureDeviceForm } from '@/components/devices/configure-device-form'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, AlertTriangle, Loader2 } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, Loader2, BarChart3, Settings } from 'lucide-react'; // Added BarChart3, Settings
 import { Skeleton } from '@/components/ui/skeleton';
 
 // Map Firebase reading keys to their legacy SensorType for icons/display names
@@ -133,7 +133,10 @@ export default function DeviceDetailPage() {
 
         <CardContent className="p-6">
           <section className="mb-8">
-            <h2 className="text-xl font-semibold mb-4">Current Sensor Readings</h2>
+            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-primary" />
+              Current Sensor Readings
+            </h2>
             {deviceLoading ? (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
                 {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-[130px] rounded-lg" />)}
@@ -159,7 +162,7 @@ export default function DeviceDetailPage() {
           </section>
 
           <section>
-            {/* Ensure ConfigureDeviceForm is updated to handle FirebaseDevice */}
+            {/* ConfigureDeviceForm will have its own title with icon */}
             {device && deviceId && <ConfigureDeviceForm device={device} />}
           </section>
         </CardContent>
