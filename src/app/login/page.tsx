@@ -6,7 +6,7 @@ export default function LoginPage() {
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center">
       <Image
-        src="/login-background.png" // Updated to local image
+        src="/login-background.jpg" // Updated to local image
         alt="Yucca plants in a desert landscape background"
         fill
         className="-z-10 object-cover"

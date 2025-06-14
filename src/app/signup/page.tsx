@@ -6,7 +6,7 @@ export default function SignupPage() {
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center p-4">
       <Image
-        src="/signup-background.png" // Updated to local image
+        src="/login-background.jpg" // Updated to local image
         alt="Abstract background with yucca plant elements"
         data-ai-hint="yucca plant desert" // Keep AI hint
         fill

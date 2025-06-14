@@ -11,15 +11,16 @@ import { getStorage, type FirebaseStorage } from "firebase/storage";
 // Project Overview > (Gear Icon) > Project settings > General tab > Your apps > Web app > Config
 // Ensure these are your ACTUAL credentials.
 const firebaseConfig = {
-  apiKey: "AIzaSyBPEswJbXXgr_B3hUvfHpFkR9QMKuUQJn8", // Replace with your actual API key
-  authDomain: "yucca-a3092.firebaseapp.com",       // Replace with your actual auth domain
-  databaseURL: "https://yucca-a3092-default-rtdb.firebaseio.com", // Ensure this is correct for RTDB
-  projectId: "yucca-a3092",                         // Replace with your actual project ID
-  storageBucket: "yucca-a3092.appspot.com", // Replace with your actual storage bucket
-  messagingSenderId: "1010415262149",               // Replace with your actual sender ID
-  appId: "1:1010415262149:web:e07c2a5a1057d360f353ac",             // Replace with your actual app ID
-  measurementId: "G-8VY4PL4E4W"                   // Optional: Replace with your actual measurement ID
+  apiKey: "AIzaSyAut-RXNdEluPurzqP7j_PeyR8wU8m14E4",
+  authDomain: "yucca-fb6bd.firebaseapp.com",
+  databaseURL: "https://yucca-fb6bd-default-rtdb.firebaseio.com",
+  projectId: "yucca-fb6bd",
+  storageBucket: "yucca-fb6bd.firebasestorage.app",
+  messagingSenderId: "238922316675",
+  appId: "1:238922316675:web:613e0ebc36a94d74cb14b6",
+  measurementId: "G-GFHRRQVZTQ"
 };
+
 
 // --- Configuration Verification & Reduced Logging ---
 console.log("--- Firebase Configuration Check ---");
