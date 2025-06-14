@@ -20,7 +20,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Save, AlertTriangle, Phone, Droplets, TestTube2, Zap, Loader2, Ruler, BellRing } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { updateDeviceManualPumpState, updateDeviceConfig, updateDeviceProperties } from "@/lib/firebase/rtdb"; 
+import { updateDeviceConfig, updateDeviceProperties } from "@/lib/firebase/rtdb"; 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 const configureDeviceFormSchema = z.object({
@@ -46,7 +46,7 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
   const queryClient = useQueryClient();
   const deviceKey = device.key;
 
-  const defaultSmsReceiver = device.smsReceiver || '';
+  const defaultSmsReceiver = device.config?.smsReceiver || '';
   const defaultWaterPumpDuration = device.config?.pumpDurations?.water || 10; 
   const defaultFertilizerPumpDuration = device.config?.pumpDurations?.fertilizer || 5;
   const defaultWaterContainerHeight = device.config?.containerHeights?.water || 30;
@@ -73,22 +73,13 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
     mutationFn: async (values: ConfigureDeviceFormValues) => {
       if (!user?.uid || !device.key) throw new Error("User or device key is missing.");
       
-      const devicePropertyUpdates: Partial<Pick<FirebaseDevice, 'name' | 'smsReceiver'>> = {};
+      // Update device name (top-level property)
       if (values.deviceName !== device.name) {
-        devicePropertyUpdates.name = values.deviceName;
+        await updateDeviceProperties(user.uid, device.key, { name: values.deviceName });
       }
       
-      const currentSmsReceiver = device.smsReceiver || '';
-      if (values.smsReceiver !== currentSmsReceiver || (currentSmsReceiver && values.smsReceiver === '')) {
-        devicePropertyUpdates.smsReceiver = values.smsReceiver;
-      }
-
-
-      if (Object.keys(devicePropertyUpdates).length > 0) {
-        await updateDeviceProperties(user.uid, device.key, devicePropertyUpdates);
-      }
-      
-      const deviceConfigPayload: FirebaseDevice['config'] = { // Ensure type compliance
+      // Prepare payload for config updates (including smsReceiver)
+      const deviceConfigPayload: Partial<FirebaseDevice['config']> = {
         pumpDurations: {
           water: values.waterPumpDuration,
           fertilizer: values.fertilizerPumpDuration,
@@ -100,7 +91,8 @@ export function ConfigureDeviceForm({ device }: ConfigureDeviceFormProps) {
         alertThresholds: {
             water: values.lowWaterAlertThreshold,
             fertilizer: values.lowFertilizerAlertThreshold,
-        }
+        },
+        smsReceiver: values.smsReceiver, // smsReceiver is now part of config
       };
       
       await updateDeviceConfig(user.uid, device.key, deviceConfigPayload);

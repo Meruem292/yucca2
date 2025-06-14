@@ -33,6 +33,8 @@ async function getUserData<T>(userId: string, dataPath: string): Promise<T | nul
 }
 
 // Generic update function for Realtime Database
+// dataPath is relative to /users/{userId}/
+// data is an object where keys can be paths relative to dataPath, e.g. { 'config/someValue': true }
 async function updateUserData(userId: string, dataPath: string, data: object): Promise<void> {
    if (!userId) {
     console.error(`updateUserData: No userId provided for path ${dataPath}`);
@@ -44,7 +46,7 @@ async function updateUserData(userId: string, dataPath: string, data: object): P
   }
   try {
     const dataRef = ref(rtdb, `users/${userId}/${dataPath}`);
-    await update(dataRef, data);
+    await update(dataRef, data); // update can handle nested paths in the 'data' object
   } catch (error) {
     console.error(`Error updating data at users/${userId}/${dataPath}:`, error);
     throw error;
@@ -81,14 +83,13 @@ export async function getDeviceHistory(userId: string, deviceKey: string): Promi
 
   return Object.entries(historyObject)
     .map(([timestampKey, value]) => {
-      // Prioritize the explicit timestamp if available, otherwise parse the key
       const entryTimestamp = value.timestamp || new Date(parseInt(timestampKey)).toISOString();
       return {
         ...value,
         timestamp: entryTimestamp,
       };
     })
-    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()); // Sort by date
+    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 }
 
 // Specific Setters
@@ -102,46 +103,27 @@ export const updateUserSettings = (userId: string, settings: Partial<UserSetting
   return updateUserData(userId, 'settings', validSettings);
 }
 
-// Updates top-level device properties like name or smsReceiver
-export const updateDeviceProperties = (userId: string, deviceKey: string, properties: Partial<Pick<FirebaseDevice, 'name' | 'smsReceiver'>>): Promise<void> => {
+// Updates top-level device properties like name
+export const updateDeviceProperties = (userId: string, deviceKey: string, properties: Partial<Pick<FirebaseDevice, 'name'>>): Promise<void> => {
     return updateUserData(userId, `devices/${deviceKey}`, properties);
 }
 
+// Updates nested device configuration properties (e.g., pumpDurations, containerHeights, smsReceiver)
+export async function updateDeviceConfig(userId: string, deviceKey: string, configPayload: Partial<FirebaseDevice['config']>) {
+  if (!userId || !deviceKey) throw new Error("User ID and Device Key are required.");
+  if (Object.keys(configPayload).length === 0) return Promise.resolve(); // No changes to update
 
-// Updates nested device configuration properties (e.g., pumpDurations, containerHeights)
-export async function updateDeviceConfig(userId: string, deviceKey: string, config: Partial<Pick<FirebaseDevice, 'config'>['config']>) {
-   if (!userId || !deviceKey) {
-    throw new Error("User ID and Device Key are required.");
+  const updatesForFirebase: Record<string, any> = {};
+  for (const key in configPayload) {
+    if (Object.prototype.hasOwnProperty.call(configPayload, key)) {
+      // Create paths like 'config/pumpDurations', 'config/smsReceiver', etc.
+      updatesForFirebase[`config/${key}`] = (configPayload as any)[key];
+    }
   }
-  if (!rtdb) {
-    throw new Error("Realtime Database is not initialized.");
-  }
-  // Filter out undefined values from config to avoid overwriting with undefined
-  const validConfig: Partial<Pick<FirebaseDevice, 'config'>['config']> = {};
-  if (config?.pumpDurations) {
-    validConfig.pumpDurations = {
-      water: config.pumpDurations.water,
-      fertilizer: config.pumpDurations.fertilizer,
-    };
-  }
-  if (config?.containerHeights) {
-    validConfig.containerHeights = {
-        water: config.containerHeights.water,
-        fertilizer: config.containerHeights.fertilizer,
-    };
-  }
-  if (config?.alertThresholds) {
-    validConfig.alertThresholds = {
-        water: config.alertThresholds.water,
-        fertilizer: config.alertThresholds.fertilizer,
-    };
-  }
-
-
-  if (Object.keys(validConfig).length > 0) {
-    return updateUserData(userId, `devices/${deviceKey}/config`, validConfig);
-  }
-  return Promise.resolve(); // No changes to update
+  // updateUserData will update relative to users/${userId}/devices/${deviceKey}
+  // For example, if updatesForFirebase is { 'config/smsReceiver': 'newNumber' },
+  // it will update users/{userId}/devices/{deviceKey}/config/smsReceiver
+  return updateUserData(userId, `devices/${deviceKey}`, updatesForFirebase);
 }
 
 
@@ -175,23 +157,26 @@ export async function registerNewDevice(userId: string, deviceName: string, uniq
     
     const defaultConfigContents: FirebaseDevice['config'] = {
       pumpDurations: { water: 10, fertilizer: 5 },
-      containerHeights: { water: 30, fertilizer: 20 }, // Default container heights in cm
-      alertThresholds: { water: 20, fertilizer: 20 }, // Default alert thresholds in %
+      containerHeights: { water: 30, fertilizer: 20 },
+      alertThresholds: { water: 20, fertilizer: 20 },
+      smsReceiver: "", // Initialize smsReceiver within config
+    };
+
+    const nonDefaultConfigContents: FirebaseDevice['config'] = {
+      pumpDurations: { water: 10, fertilizer: 5 }, // Or other non-defaults as needed
+      containerHeights: { water: 0, fertilizer: 0 },
+      alertThresholds: { water: 20, fertilizer: 20 },
+      smsReceiver: "", // Initialize smsReceiver within config
     };
 
     const newDeviceData: Omit<FirebaseDevice, 'key' | 'isConnected'> = { 
       id: uniqueIdFormat,
       name: deviceName,
       location: location || "Default Location",
-      smsReceiver: "", // Initialize top-level smsReceiver
       lastUpdated: now,
       readings: defaultReadings,
       useDefaultSettings: useDefaultSettings,
-      config: useDefaultSettings ? defaultConfigContents : { 
-        pumpDurations: { water: 10, fertilizer: 5 }, 
-        containerHeights: { water: 0, fertilizer: 0},
-        alertThresholds: { water: 20, fertilizer: 20} // Also set defaults if not using "default settings" for consistency
-      },
+      config: useDefaultSettings ? defaultConfigContents : nonDefaultConfigContents,
       manualControl: { 
         waterPumpActive: false,
         fertilizerPumpActive: false,
@@ -221,6 +206,7 @@ export async function updateDeviceManualPumpState(
   }
   try {
     const pumpPathKey = pumpType === 'water' ? 'waterPumpActive' : 'fertilizerPumpActive';
+    // Update directly using ref and set for a single value, or use update for multiple paths
     const controlRef = ref(rtdb, `users/${userId}/devices/${deviceKey}/manualControl/${pumpPathKey}`);
     await set(controlRef, isActive);
   } catch (error) {
