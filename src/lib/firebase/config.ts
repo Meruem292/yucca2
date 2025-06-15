@@ -11,14 +11,14 @@ import { getStorage, type FirebaseStorage } from "firebase/storage";
 // Project Overview > (Gear Icon) > Project settings > General tab > Your apps > Web app > Config
 // Ensure these are your ACTUAL credentials.
 const firebaseConfig = {
-  apiKey: "AIzaSyAut-RXNdEluPurzqP7j_PeyR8wU8m14E4",
-  authDomain: "yucca-fb6bd.firebaseapp.com",
-  databaseURL: "https://yucca-fb6bd-default-rtdb.firebaseio.com",
-  projectId: "yucca-fb6bd",
-  storageBucket: "yucca-fb6bd.firebasestorage.app",
-  messagingSenderId: "238922316675",
-  appId: "1:238922316675:web:613e0ebc36a94d74cb14b6",
-  measurementId: "G-GFHRRQVZTQ"
+  apiKey: "AIzaSyB0605SiXFO1O3Y148JaiiC6UcjzcvMe8U",
+  authDomain: "yucca-1430d.firebaseapp.com",
+  databaseURL: "https://yucca-1430d-default-rtdb.firebaseio.com",
+  projectId: "yucca-1430d",
+  storageBucket: "yucca-1430d.firebasestorage.app",
+  messagingSenderId: "273629284636",
+  appId: "1:273629284636:web:dcad85d1e3ed4fdb3412d9",
+  measurementId: "G-D2NHXT78MP"
 };
 
 
